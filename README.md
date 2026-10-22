@@ -22,7 +22,7 @@
 npx @dbx-app/plugin-cli package .
 ```
 
-包在 `dist/link.htmlto.query-share-0.2.6-universal.dbxp`。
+包在 `dist/link.htmlto.query-share-0.1.0-universal.dbxp`。
 
 DBX 里打开插件中心，允许未签名开发包，再安装这个文件。源码在 [licc168/dbx-htmlto-link](https://github.com/licc168/dbx-htmlto-link)，许可证是 MIT。正式上架把这个仓库的 Release 交给 [t8y2/dbx-store](https://github.com/t8y2/dbx-store) 审核签名，不要把插件源码提交到 `t8y2/dbx`。
 

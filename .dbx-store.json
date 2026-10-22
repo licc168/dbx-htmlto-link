@@ -12,7 +12,7 @@
   "source": "https://github.com/licc168/dbx-htmlto-link",
   "homepage": "https://htmlto.link",
   "license": "MIT",
-  "releaseNotes": "Publish a query result, or reconstructed table structure with indexes, foreign keys, and comments, as a read-only htmlto.link page.",
+  "releaseNotes": "Initial release. Publish a query result, or reconstructed table structure with indexes, foreign keys, and comments, as a read-only htmlto.link page.",
   "localizations": {
     "zh-CN": {
       "name": "HTML To Link",

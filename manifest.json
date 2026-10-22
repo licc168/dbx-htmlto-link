@@ -3,7 +3,7 @@
   "manifest_version": 1,
   "id": "link.htmlto.query-share",
   "name": "HTML To Link",
-  "version": "0.2.6",
+  "version": "0.1.0",
   "publisher": "htmlto",
   "description": "Publish a query result, or a table's columns, indexes, foreign keys, and comments, as a read-only htmlto.link page. Database credentials stay in DBX.",
   "icon": "assets/plugin.svg",
