@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/t8y2/dbx/main/plugins/manifest.schema.json",
+  "manifest_version": 1,
+  "id": "link.htmlto.query-share",
+  "name": "HTML To Link",
+  "version": "0.2.6",
+  "publisher": "htmlto",
+  "description": "Publish a query result, or a table's columns, indexes, foreign keys, and comments, as a read-only htmlto.link page. Database credentials stay in DBX.",
+  "icon": "assets/plugin.svg",
+  "source": "https://github.com/licc168/dbx-htmlto-link",
+  "homepage": "https://htmlto.link",
+  "engines": {
+    "dbx": ">=0.6.0",
+    "host_api": "^1.0"
+  },
+  "permissions": [
+    "host.storage",
+    "host.data:read",
+    "host.schema:read",
+    "host.network:https://htmlto.link:443"
+  ],
+  "entrypoints": {
+    "ui": {
+      "root": "ui",
+      "entry": "ui/index.html"
+    }
+  },
+  "contributions": [
+    {
+      "type": "result-view",
+      "id": "link.htmlto.query-share.publish",
+      "label": "Publish to htmlto.link"
+    },
+    {
+      "type": "workbench",
+      "id": "link.htmlto.query-share.workbench",
+      "label": "HTML To Link",
+      "description": "Publish a query result or table structure to htmlto.link.",
+      "icon": "assets/plugin.svg"
+    },
+    {
+      "type": "context-menu",
+      "id": "link.htmlto.query-share.table",
+      "label": "Publish structure to htmlto.link",
+      "menu": "table",
+      "action": {
+        "type": "open-workbench",
+        "workbench": "link.htmlto.query-share.workbench"
+      }
+    }
+  ],
+  "localizations": {
+    "zh-CN": {
+      "name": "HTML To Link",
+      "description": "把查询结果，或表的字段、索引、外键和注释，发成一条只读的 htmlto.link 链接。数据库连接留在 DBX。",
+      "contributions": {
+        "link.htmlto.query-share.publish": {
+          "label": "发布到 htmlto.link"
+        },
+        "link.htmlto.query-share.workbench": {
+          "label": "发布到 htmlto.link",
+          "description": "把查询结果或表结构发成一条 htmlto.link 链接。"
+        },
+        "link.htmlto.query-share.table": {
+          "label": "发布表结构到 htmlto.link"
+        }
+      }
+    }
+  }
+}

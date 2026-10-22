@@ -1,0 +1,2648 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HTML To Link</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      body {
+        margin: 0;
+        background: var(--color-background, Canvas);
+        color: var(--color-foreground, CanvasText);
+        font-family: var(--font-sans, Inter, ui-sans-serif, system-ui, sans-serif);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      main { width: min(880px, 100%); margin: 0 auto; padding: 20px; display: grid; gap: 14px; }
+      h1 { margin: 0; font-size: 20px; }
+      p { margin: 0; }
+      .muted { color: var(--color-muted-foreground, color-mix(in srgb, CanvasText 68%, transparent)); }
+      .preview, .success, .card {
+        border: 1px solid var(--color-border, color-mix(in srgb, CanvasText 16%, transparent));
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--color-background, Canvas) 92%, CanvasText 4%);
+      }
+      .preview { overflow: auto; max-height: 420px; }
+      table { border-collapse: collapse; width: max-content; min-width: 100%; }
+      th, td {
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--color-border, color-mix(in srgb, CanvasText 12%, transparent));
+        text-align: left;
+        white-space: nowrap;
+        max-width: 240px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 12px;
+      }
+      th { position: sticky; top: 0; background: var(--color-muted, color-mix(in srgb, CanvasText 8%, Canvas)); }
+      form, .success { display: grid; gap: 10px; }
+      .card, .success { padding: 14px; }
+      label { display: grid; gap: 4px; font-weight: 600; }
+      input[type="text"], input[type="password"], input[type="number"], select {
+        width: 100%;
+        border: 1px solid var(--color-border, color-mix(in srgb, CanvasText 18%, transparent));
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: var(--color-background, Canvas);
+        color: inherit;
+        font: inherit;
+        font-weight: 400;
+      }
+      .check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+      .tableList { max-height: 220px; overflow: auto; display: grid; gap: 2px; }
+      .tableList .check { align-items: baseline; }
+      .comment { font-weight: 400; }
+      .field { display: grid; gap: 4px; font-weight: 600; }
+      .tokenHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .tokenHead button { padding: 4px 10px; font-size: 12px; }
+      #tokenWait { overflow-wrap: anywhere; }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; }
+      button, .linkish {
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        background: var(--color-primary, #0f766e);
+        color: var(--color-primary-foreground, #fff);
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      button.secondary, .linkish {
+        background: transparent;
+        color: inherit;
+        border: 1px solid var(--color-border, color-mix(in srgb, CanvasText 18%, transparent));
+      }
+      button:disabled { opacity: 0.55; cursor: wait; }
+      #error { color: var(--color-destructive, #b91c1c); min-height: 1.2em; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1 id="heading">发布到 htmlto.link</h1>
+        <p id="lead" class="muted"></p>
+      </header>
+      <p id="meta" class="muted"></p>
+      <div id="preview" class="preview"></div>
+      <section id="tablePicker" class="card" hidden>
+        <div class="tokenHead">
+          <span id="tablePickerLabel">要发布的表</span>
+          <button id="toggleTables" class="secondary" type="button"></button>
+        </div>
+        <input id="tableFilter" type="text" />
+        <div id="tableList" class="tableList"></div>
+        <p id="tablePickerNote" class="muted"></p>
+      </section>
+      <form id="form" class="card">
+        <label id="titleLabel">页面标题
+          <input id="pageTitle" type="text" maxlength="128" />
+        </label>
+        <label id="templateLabel">模板
+          <select id="template"></select>
+        </label>
+        <label id="themeField">主题
+          <select id="theme"></select>
+        </label>
+        <label id="passwordLabel">访问密码
+          <input id="password" type="password" maxlength="128" autocomplete="off" />
+        </label>
+        <label class="check"><input id="changePassword" type="checkbox" /> <span id="changePasswordText"></span></label>
+        <label id="sqlOption" class="check"><input id="includeSql" type="checkbox" /> <span id="includeSqlText"></span></label>
+        <div class="field">
+          <div class="tokenHead">
+            <span id="tokenLabel">API Token</span>
+            <button id="fetchToken" class="secondary" type="button"></button>
+          </div>
+          <input id="token" type="password" autocomplete="off" />
+        </div>
+        <p id="tokenWait" class="muted" hidden></p>
+        <p id="tokenHelp" class="muted"></p>
+        <div class="row">
+          <button id="create" type="button"></button>
+          <button id="update" class="secondary" type="button"></button>
+        </div>
+      </form>
+      <section id="more" class="card" hidden>
+        <p id="moreLead" class="muted"></p>
+        <div class="row">
+          <label id="maxRowsLabel">行数
+            <input id="maxRows" type="number" min="1" max="5000" value="2000" />
+          </label>
+          <button id="loadMore" class="secondary" type="button"></button>
+          <button id="useGrid" class="secondary" type="button" hidden></button>
+        </div>
+      </section>
+      <section id="success" class="success" hidden>
+        <p id="successText"></p>
+        <p><code id="shareUrl"></code></p>
+        <p id="expiry" class="muted"></p>
+        <div class="row">
+          <button id="copy" type="button"></button>
+        </div>
+      </section>
+      <p id="error" role="alert"></p>
+    </main>
+    <script>
+(function (root, factory) {
+  const api = factory()
+  if (typeof module === 'object' && module.exports) {
+    module.exports = api
+  } else {
+    root.HtmlToLinkTable = api
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  const MAX_CELL_CHARS = 2000
+  const MAX_MARKDOWN_BYTES = 2_000_000
+
+  function cellText(value) {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'string') return value
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+      return String(value)
+    }
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return String(value)
+    }
+  }
+
+  function clip(value) {
+    const text = cellText(value).replace(/\r\n|\r|\n/g, ' ')
+    if (text.length <= MAX_CELL_CHARS) return text
+    return text.slice(0, MAX_CELL_CHARS) + '…'
+  }
+
+  function markdownCell(value) {
+    return clip(value).replace(/\|/g, '\\|')
+  }
+
+  function columnName(column, index, fallback) {
+    const raw = typeof column === 'string' ? column : column && column.name
+    const name = typeof raw === 'string' ? raw.replace(/\r\n|\r|\n/g, ' ').trim() : ''
+    return name || fallback(index)
+  }
+
+  function uniqueNames(columns, fallback) {
+    const seen = new Map()
+    return columns.map((column, index) => {
+      const base = columnName(column, index, fallback)
+      const count = seen.get(base) || 0
+      seen.set(base, count + 1)
+      return count === 0 ? base : base + '_' + (count + 1)
+    })
+  }
+
+  function rowValues(row, names) {
+    if (Array.isArray(row)) return names.map((_, index) => row[index])
+    if (row && typeof row === 'object') return names.map((name) => row[name])
+    return names.map(() => row)
+  }
+
+  function sqlFence(sql) {
+    const matches = String(sql).match(/`+/g) || []
+    const width = matches.reduce((longest, item) => Math.max(longest, item.length), 2) + 1
+    const fence = '`'.repeat(width)
+    return fence + 'sql\n' + String(sql).replace(/\s+$/, '') + '\n' + fence
+  }
+
+  function quoteIdent(name) {
+    const text = String(name)
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(text)) return text
+    return '"' + text.replace(/"/g, '""') + '"'
+  }
+
+  function sqlLiteral(value) {
+    return "'" + String(value).replace(/\\/g, '\\\\').replace(/'/g, "''") + "'"
+  }
+
+  function normalizeDbType(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')
+  }
+
+  const MYSQL_TYPES = new Set(['mysql', 'mariadb', 'tidb', 'oceanbase', 'doris', 'starrocks', 'selectdb', 'tdsql'])
+  const POSTGRES_TYPES = new Set(['postgres', 'postgresql', 'kingbase', 'kingbasees', 'opengauss', 'gaussdb', 'vastbase', 'highgo', 'greenplum'])
+  const SQLSERVER_TYPES = new Set(['sqlserver', 'mssql', 'azuresql'])
+
+  function dialectFamily(value) {
+    const id = normalizeDbType(value)
+    if (MYSQL_TYPES.has(id)) return 'mysql'
+    if (POSTGRES_TYPES.has(id)) return 'postgres'
+    if (SQLSERVER_TYPES.has(id)) return 'sqlserver'
+    return ''
+  }
+
+  function schemaNames(input) {
+    const source = input && typeof input === 'object' ? input : {}
+    const database = typeof source.database === 'string' ? source.database.trim() : ''
+    const schema = typeof source.schema === 'string' ? source.schema.trim() : ''
+    if (database.includes('\0') || schema.includes('\0')) return null
+    return { database, schema }
+  }
+
+  function catalogTarget(input) {
+    const source = input && typeof input === 'object' ? input : {}
+    const table = typeof source.table === 'string' ? source.table.trim() : ''
+    const names = schemaNames(source)
+    if (!table || table.includes('\0') || !names) return null
+    const family = dialectFamily(source.dbType)
+    if (!family) return null
+    const { database, schema } = names
+    const tableSchema = family === 'mysql' ? (database || schema) : family === 'postgres' ? (schema || 'public') : (schema || 'dbo')
+    if (!tableSchema) return null
+    return { table, tableSchema, family }
+  }
+
+  function indexCatalogQuery(input) {
+    const target = catalogTarget(input)
+    if (!target) return null
+    const { table, tableSchema, family } = target
+    if (family === 'mysql') {
+      return [
+        'SELECT INDEX_NAME AS index_name,',
+        'CASE WHEN NON_UNIQUE = 0 THEN 1 ELSE 0 END AS is_unique,',
+        "CASE WHEN INDEX_NAME = 'PRIMARY' THEN 1 ELSE 0 END AS is_primary,",
+        'SEQ_IN_INDEX AS seq_in_index,',
+        'COLUMN_NAME AS column_name,',
+        'INDEX_TYPE AS index_type',
+        'FROM information_schema.STATISTICS',
+        'WHERE TABLE_SCHEMA = ' + sqlLiteral(tableSchema) + ' AND TABLE_NAME = ' + sqlLiteral(table),
+        'ORDER BY INDEX_NAME, SEQ_IN_INDEX',
+      ].join(' ')
+    }
+    if (family === 'postgres') {
+      return [
+        'SELECT i.relname AS index_name,',
+        'CASE WHEN ix.indisunique THEN 1 ELSE 0 END AS is_unique,',
+        'CASE WHEN ix.indisprimary THEN 1 ELSE 0 END AS is_primary,',
+        'k.seq_in_index AS seq_in_index,',
+        'a.attname AS column_name,',
+        'am.amname AS index_type',
+        'FROM pg_class t',
+        'JOIN pg_namespace n ON n.oid = t.relnamespace',
+        'JOIN pg_index ix ON ix.indrelid = t.oid',
+        'JOIN pg_class i ON i.oid = ix.indexrelid',
+        'JOIN pg_am am ON am.oid = i.relam',
+        'JOIN LATERAL unnest(ix.indkey) WITH ORDINALITY AS k(attnum, seq_in_index) ON k.attnum > 0',
+        'JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = k.attnum',
+        'WHERE n.nspname = ' + sqlLiteral(tableSchema) + ' AND t.relname = ' + sqlLiteral(table),
+        'ORDER BY i.relname, k.seq_in_index',
+      ].join(' ')
+    }
+    return [
+        'SELECT i.name AS index_name,',
+        'CASE WHEN i.is_unique = 1 THEN 1 ELSE 0 END AS is_unique,',
+        'CASE WHEN i.is_primary_key = 1 THEN 1 ELSE 0 END AS is_primary,',
+        'ic.key_ordinal AS seq_in_index,',
+        'c.name AS column_name,',
+        'i.type_desc AS index_type',
+        'FROM sys.indexes i',
+        'INNER JOIN sys.tables t ON t.object_id = i.object_id',
+        'INNER JOIN sys.schemas s ON s.schema_id = t.schema_id',
+        'INNER JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 0',
+        'INNER JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id',
+        'WHERE s.name = ' + sqlLiteral(tableSchema) + ' AND t.name = ' + sqlLiteral(table) + ' AND i.type > 0 AND i.is_hypothetical = 0',
+        'ORDER BY i.name, ic.key_ordinal',
+      ].join(' ')
+  }
+
+  function tableListQuery(input) {
+    const names = schemaNames(input)
+    if (!names) return null
+    const { database, schema } = names
+    const family = dialectFamily(input && input.dbType)
+    if (family === 'mysql') {
+      const tableSchema = database || schema
+      if (!tableSchema) return null
+      return [
+        'SELECT TABLE_NAME AS table_name, TABLE_COMMENT AS table_comment',
+        'FROM information_schema.TABLES',
+        'WHERE TABLE_SCHEMA = ' + sqlLiteral(tableSchema) + " AND TABLE_TYPE = 'BASE TABLE'",
+        'ORDER BY TABLE_NAME',
+      ].join(' ')
+    }
+    if (family === 'postgres') {
+      const tableSchema = schema || 'public'
+      return [
+        "SELECT c.relname AS table_name, COALESCE(pg_catalog.obj_description(c.oid, 'pg_class'), '') AS table_comment",
+        'FROM pg_class c',
+        'JOIN pg_namespace n ON n.oid = c.relnamespace',
+        'WHERE n.nspname = ' + sqlLiteral(tableSchema) + " AND c.relkind = 'r'",
+        'ORDER BY c.relname',
+      ].join(' ')
+    }
+    if (family === 'sqlserver') {
+      const tableSchema = schema || 'dbo'
+      return [
+        'SELECT t.name AS table_name, CAST(ep.value AS nvarchar(400)) AS table_comment',
+        'FROM sys.tables t',
+        'INNER JOIN sys.schemas s ON s.schema_id = t.schema_id',
+        'LEFT JOIN sys.extended_properties ep ON ep.major_id = t.object_id AND ep.minor_id = 0 AND ep.name = ' + sqlLiteral('MS_Description'),
+        'WHERE s.name = ' + sqlLiteral(tableSchema),
+        'ORDER BY t.name',
+      ].join(' ')
+    }
+    return null
+  }
+
+  function columnCommentQuery(input) {
+    const target = catalogTarget(input)
+    if (!target) return null
+    const { table, tableSchema, family } = target
+    if (family === 'mysql') {
+      return [
+        'SELECT COLUMN_NAME AS column_name, COLUMN_COMMENT AS column_comment',
+        'FROM information_schema.COLUMNS',
+        'WHERE TABLE_SCHEMA = ' + sqlLiteral(tableSchema) + ' AND TABLE_NAME = ' + sqlLiteral(table),
+        'ORDER BY ORDINAL_POSITION',
+      ].join(' ')
+    }
+    if (family === 'postgres') {
+      return [
+        'SELECT a.attname AS column_name,',
+        "COALESCE(pg_catalog.col_description(a.attrelid, a.attnum), '') AS column_comment",
+        'FROM pg_attribute a',
+        'JOIN pg_class c ON c.oid = a.attrelid',
+        'JOIN pg_namespace n ON n.oid = c.relnamespace',
+        'WHERE n.nspname = ' + sqlLiteral(tableSchema) + ' AND c.relname = ' + sqlLiteral(table),
+        'AND a.attnum > 0 AND NOT a.attisdropped',
+        'ORDER BY a.attnum',
+      ].join(' ')
+    }
+    return [
+      'SELECT c.name AS column_name, CAST(ep.value AS nvarchar(400)) AS column_comment',
+      'FROM sys.columns c',
+      'INNER JOIN sys.tables t ON t.object_id = c.object_id',
+      'INNER JOIN sys.schemas s ON s.schema_id = t.schema_id',
+      'LEFT JOIN sys.extended_properties ep ON ep.major_id = c.object_id AND ep.minor_id = c.column_id AND ep.name = ' + sqlLiteral('MS_Description'),
+      'WHERE s.name = ' + sqlLiteral(tableSchema) + ' AND t.name = ' + sqlLiteral(table),
+      'ORDER BY c.column_id',
+    ].join(' ')
+  }
+
+  function foreignKeyQuery(input) {
+    const target = catalogTarget(input)
+    if (!target) return null
+    const { table, tableSchema, family } = target
+    if (family === 'mysql') {
+      return [
+        'SELECT k.CONSTRAINT_NAME AS constraint_name,',
+        'k.COLUMN_NAME AS column_name,',
+        'k.ORDINAL_POSITION AS ordinal_position,',
+        'k.REFERENCED_TABLE_SCHEMA AS referenced_schema,',
+        'k.REFERENCED_TABLE_NAME AS referenced_table,',
+        'k.REFERENCED_COLUMN_NAME AS referenced_column,',
+        'r.UPDATE_RULE AS update_rule,',
+        'r.DELETE_RULE AS delete_rule',
+        'FROM information_schema.KEY_COLUMN_USAGE k',
+        'INNER JOIN information_schema.REFERENTIAL_CONSTRAINTS r',
+        'ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME',
+        'WHERE k.TABLE_SCHEMA = ' + sqlLiteral(tableSchema) + ' AND k.TABLE_NAME = ' + sqlLiteral(table),
+        'AND k.REFERENCED_TABLE_NAME IS NOT NULL',
+        'ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION',
+      ].join(' ')
+    }
+    if (family === 'postgres') {
+      return [
+        'SELECT con.conname AS constraint_name,',
+        'src.attname AS column_name,',
+        'k.ord AS ordinal_position,',
+        'rn.nspname AS referenced_schema,',
+        'rel.relname AS referenced_table,',
+        'dst.attname AS referenced_column,',
+        "CASE con.confupdtype WHEN 'a' THEN 'NO ACTION' WHEN 'r' THEN 'RESTRICT' WHEN 'c' THEN 'CASCADE' WHEN 'n' THEN 'SET NULL' WHEN 'd' THEN 'SET DEFAULT' ELSE '' END AS update_rule,",
+        "CASE con.confdeltype WHEN 'a' THEN 'NO ACTION' WHEN 'r' THEN 'RESTRICT' WHEN 'c' THEN 'CASCADE' WHEN 'n' THEN 'SET NULL' WHEN 'd' THEN 'SET DEFAULT' ELSE '' END AS delete_rule",
+        'FROM pg_constraint con',
+        'JOIN pg_class c ON c.oid = con.conrelid',
+        'JOIN pg_namespace n ON n.oid = c.relnamespace',
+        'JOIN pg_class rel ON rel.oid = con.confrelid',
+        'JOIN pg_namespace rn ON rn.oid = rel.relnamespace',
+        'JOIN LATERAL unnest(con.conkey, con.confkey) WITH ORDINALITY AS k(src_att, dst_att, ord) ON true',
+        'JOIN pg_attribute src ON src.attrelid = con.conrelid AND src.attnum = k.src_att',
+        'JOIN pg_attribute dst ON dst.attrelid = con.confrelid AND dst.attnum = k.dst_att',
+        "WHERE con.contype = 'f' AND n.nspname = " + sqlLiteral(tableSchema) + ' AND c.relname = ' + sqlLiteral(table),
+        'ORDER BY con.conname, k.ord',
+      ].join(' ')
+    }
+    return [
+      'SELECT fk.name AS constraint_name,',
+      'pc.name AS column_name,',
+      'fkc.constraint_column_id AS ordinal_position,',
+      'rs.name AS referenced_schema,',
+      'rt.name AS referenced_table,',
+      'rc.name AS referenced_column,',
+      'fk.update_referential_action_desc AS update_rule,',
+      'fk.delete_referential_action_desc AS delete_rule',
+      'FROM sys.foreign_keys fk',
+      'INNER JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id',
+      'INNER JOIN sys.tables pt ON pt.object_id = fk.parent_object_id',
+      'INNER JOIN sys.schemas ps ON ps.schema_id = pt.schema_id',
+      'INNER JOIN sys.columns pc ON pc.object_id = fkc.parent_object_id AND pc.column_id = fkc.parent_column_id',
+      'INNER JOIN sys.tables rt ON rt.object_id = fk.referenced_object_id',
+      'INNER JOIN sys.schemas rs ON rs.schema_id = rt.schema_id',
+      'INNER JOIN sys.columns rc ON rc.object_id = fkc.referenced_object_id AND rc.column_id = fkc.referenced_column_id',
+      'WHERE ps.name = ' + sqlLiteral(tableSchema) + ' AND pt.name = ' + sqlLiteral(table),
+      'ORDER BY fk.name, fkc.constraint_column_id',
+    ].join(' ')
+  }
+
+  function rowCell(row, labels, name) {
+    if (Array.isArray(row)) {
+      const index = labels.indexOf(name)
+      return index < 0 ? undefined : row[index]
+    }
+    if (row && typeof row === 'object') {
+      if (Object.prototype.hasOwnProperty.call(row, name)) return row[name]
+      const key = Object.keys(row).find((item) => item.toLowerCase() === name)
+      return key == null ? undefined : row[key]
+    }
+    return undefined
+  }
+
+  function parseTableList(input) {
+    const source = input && typeof input === 'object' ? input : {}
+    const columns = Array.isArray(source.columns) ? source.columns : []
+    const labels = columns.map((column) => {
+      const raw = typeof column === 'string' ? column : column && column.name
+      return typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+    })
+    const seen = new Set()
+    const tables = []
+    for (const row of Array.isArray(source.rows) ? source.rows : []) {
+      const name = String(rowCell(row, labels, 'table_name') ?? '').replace(/\r\n|\r|\n/g, ' ').trim()
+      if (!name || seen.has(name)) continue
+      seen.add(name)
+      const comment = String(rowCell(row, labels, 'table_comment') ?? '').replace(/\r\n|\r|\n/g, ' ').trim()
+      tables.push({ name, comment })
+    }
+    return tables
+  }
+
+  function flagOn(value) {
+    if (value === true || value === 1) return true
+    if (typeof value === 'string') {
+      const text = value.trim().toLowerCase()
+      return text === '1' || text === 'true' || text === 't' || text === 'yes'
+    }
+    return false
+  }
+
+  function parseIndexRows(input) {
+    const source = input && typeof input === 'object' ? input : {}
+    const columns = Array.isArray(source.columns) ? source.columns : []
+    const labels = columns.map((column) => {
+      const raw = typeof column === 'string' ? column : column && column.name
+      return typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+    })
+    const groups = new Map()
+    for (const row of Array.isArray(source.rows) ? source.rows : []) {
+      const name = String(rowCell(row, labels, 'index_name') ?? '').replace(/\r\n|\r|\n/g, ' ').trim()
+      const column = String(rowCell(row, labels, 'column_name') ?? '').replace(/\r\n|\r|\n/g, ' ').trim()
+      if (!name || !column) continue
+      let group = groups.get(name)
+      if (!group) {
+        group = {
+          name,
+          unique: flagOn(rowCell(row, labels, 'is_unique')),
+          primary: flagOn(rowCell(row, labels, 'is_primary')) || name.toUpperCase() === 'PRIMARY',
+          type: String(rowCell(row, labels, 'index_type') ?? '').replace(/\r\n|\r|\n/g, ' ').trim(),
+          parts: [],
+        }
+        groups.set(name, group)
+      }
+      const seq = Number(rowCell(row, labels, 'seq_in_index'))
+      group.parts.push({ column, seq: Number.isFinite(seq) ? seq : group.parts.length + 1 })
+    }
+    return Array.from(groups.values()).map((group) => {
+      const seen = new Set()
+      const columns = group.parts
+        .slice()
+        .sort((left, right) => left.seq - right.seq || left.column.localeCompare(right.column))
+        .map((part) => part.column)
+        .filter((column) => {
+          if (seen.has(column)) return false
+          seen.add(column)
+          return true
+        })
+      return {
+        name: group.name,
+        unique: group.unique,
+        primary: group.primary,
+        type: group.type,
+        columns,
+      }
+    })
+  }
+
+  function columnLabels(input) {
+    const source = input && typeof input === 'object' ? input : {}
+    const columns = Array.isArray(source.columns) ? source.columns : []
+    return columns.map((column) => {
+      const raw = typeof column === 'string' ? column : column && column.name
+      return typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+    })
+  }
+
+  function oneLine(value) {
+    return String(value ?? '').replace(/\r\n|\r|\n/g, ' ').trim()
+  }
+
+  function ruleText(value) {
+    return oneLine(value).replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
+  }
+
+  function referentialAction(rule) {
+    const text = ruleText(rule).toUpperCase()
+    if (text === 'CASCADE' || text === 'SET NULL' || text === 'SET DEFAULT') return text
+    return ''
+  }
+
+  function parseColumnComments(input) {
+    const labels = columnLabels(input)
+    const rows = Array.isArray(input && input.rows) ? input.rows : []
+    const seen = new Set()
+    const comments = []
+    for (const row of rows) {
+      const name = oneLine(rowCell(row, labels, 'column_name'))
+      const comment = clip(rowCell(row, labels, 'column_comment')).trim()
+      if (!name || !comment || seen.has(name)) continue
+      seen.add(name)
+      comments.push({ name, comment })
+    }
+    return comments
+  }
+
+  function parseForeignKeys(input) {
+    const labels = columnLabels(input)
+    const rows = Array.isArray(input && input.rows) ? input.rows : []
+    const groups = new Map()
+    for (const row of rows) {
+      const name = oneLine(rowCell(row, labels, 'constraint_name'))
+      const column = oneLine(rowCell(row, labels, 'column_name'))
+      const referencedTable = oneLine(rowCell(row, labels, 'referenced_table'))
+      const referencedColumn = oneLine(rowCell(row, labels, 'referenced_column'))
+      if (!name || !column || !referencedTable || !referencedColumn) continue
+      let group = groups.get(name)
+      if (!group) {
+        group = {
+          name,
+          referencedSchema: oneLine(rowCell(row, labels, 'referenced_schema')),
+          referencedTable,
+          updateRule: ruleText(rowCell(row, labels, 'update_rule')),
+          deleteRule: ruleText(rowCell(row, labels, 'delete_rule')),
+          parts: [],
+        }
+        groups.set(name, group)
+      }
+      const seq = Number(rowCell(row, labels, 'ordinal_position'))
+      group.parts.push({
+        column,
+        referencedColumn,
+        seq: Number.isFinite(seq) ? seq : group.parts.length + 1,
+      })
+    }
+    return Array.from(groups.values()).map((group) => {
+      const seen = new Set()
+      const columns = []
+      const referencedColumns = []
+      const parts = group.parts.slice().sort((left, right) => left.seq - right.seq || left.column.localeCompare(right.column))
+      for (const part of parts) {
+        const key = part.column + '\0' + part.referencedColumn
+        if (seen.has(key)) continue
+        seen.add(key)
+        columns.push(part.column)
+        referencedColumns.push(part.referencedColumn)
+      }
+      return {
+        name: group.name,
+        columns,
+        referencedSchema: group.referencedSchema,
+        referencedTable: group.referencedTable,
+        referencedColumns,
+        updateRule: group.updateRule,
+        deleteRule: group.deleteRule,
+      }
+    })
+  }
+
+  function foreignKeyReference(key) {
+    if (!key) return ''
+    const table = [key.referencedSchema, key.referencedTable]
+      .filter((item) => item != null && String(item).trim() !== '')
+      .map((item) => String(item).trim())
+      .join('.')
+    const cols = Array.isArray(key.referencedColumns) ? key.referencedColumns.filter(Boolean).join(', ') : ''
+    if (!table) return cols
+    return cols ? table + ' (' + cols + ')' : table
+  }
+
+  function indexKindLabel(index, labels) {
+    const names = labels || {}
+    if (index.primary) return names.primary || 'primary key'
+    const type = String(index.type || '').toUpperCase()
+    if (type === 'FULLTEXT') return names.fulltext || 'fulltext'
+    if (type === 'SPATIAL') return names.spatial || 'spatial'
+    if (index.unique) return names.unique || 'unique'
+    return names.plain || 'index'
+  }
+
+  function indexStatements(qualified, indexes) {
+    const lines = []
+    for (const index of indexes) {
+      if (!index || !Array.isArray(index.columns) || index.columns.length === 0) continue
+      const cols = index.columns.map(quoteIdent).join(', ')
+      if (index.primary) {
+        lines.push('ALTER TABLE ' + qualified + ' ADD PRIMARY KEY (' + cols + ');')
+        continue
+      }
+      const type = String(index.type || '').toUpperCase()
+      const kind = type === 'FULLTEXT' ? 'FULLTEXT ' : type === 'SPATIAL' ? 'SPATIAL ' : ''
+      const unique = index.unique && !kind ? 'UNIQUE ' : ''
+      lines.push('CREATE ' + unique + kind + 'INDEX ' + quoteIdent(index.name) + ' ON ' + qualified + ' (' + cols + ');')
+    }
+    return lines.join('\n')
+  }
+
+  function foreignKeyStatements(qualified, keys) {
+    const lines = []
+    for (const key of keys) {
+      if (!key || !Array.isArray(key.columns) || key.columns.length === 0 || !key.referencedTable) continue
+      const cols = key.columns.map(quoteIdent).join(', ')
+      const refCols = Array.isArray(key.referencedColumns) ? key.referencedColumns.map(quoteIdent).join(', ') : ''
+      if (!refCols) continue
+      const owner = key.referencedSchema ? quoteIdent(key.referencedSchema) + '.' : ''
+      let line = 'ALTER TABLE ' + qualified + ' ADD CONSTRAINT ' + quoteIdent(key.name) + ' FOREIGN KEY (' + cols + ') REFERENCES ' + owner + quoteIdent(key.referencedTable) + ' (' + refCols + ')'
+      const onDelete = referentialAction(key.deleteRule)
+      const onUpdate = referentialAction(key.updateRule)
+      if (onDelete) line += ' ON DELETE ' + onDelete
+      if (onUpdate) line += ' ON UPDATE ' + onUpdate
+      lines.push(line + ';')
+    }
+    return lines.join('\n')
+  }
+
+  function tableCommentStatement(qualified, comment, dbType) {
+    const text = clip(comment).trim()
+    if (!text || !qualified) return ''
+    const family = dialectFamily(dbType)
+    if (family === 'postgres') return 'COMMENT ON TABLE ' + qualified + ' IS ' + sqlLiteral(text) + ';'
+    if (family === 'sqlserver') return ''
+    return 'ALTER TABLE ' + qualified + ' COMMENT = ' + sqlLiteral(text) + ';'
+  }
+
+  function attachColumnComments(columns, comments) {
+    if (!Array.isArray(comments) || comments.length === 0) return columns
+    const exact = new Map()
+    const lower = new Map()
+    for (const item of comments) {
+      if (!item || !item.comment) continue
+      const name = oneLine(item.name)
+      if (!name) continue
+      if (!exact.has(name)) exact.set(name, item.comment)
+      const key = name.toLowerCase()
+      if (!lower.has(key)) lower.set(key, item.comment)
+    }
+    if (exact.size === 0) return columns
+    return columns.map((column) => {
+      const source = column && typeof column === 'object' ? column : { name: column }
+      const raw = typeof column === 'string' ? column : source.name
+      const name = typeof raw === 'string' ? raw.trim() : ''
+      const own = source.comment != null && oneLine(source.comment) !== '' ? source.comment : ''
+      const extra = (name && exact.get(name)) || (name && lower.get(name.toLowerCase())) || ''
+      const comment = own || extra
+      if (!comment) return column
+      return { ...source, comment }
+    })
+  }
+
+  function describeColumn(column, index, fallback) {
+    const source = column && typeof column === 'object' ? column : { name: column }
+    const name = columnName(source, index, fallback || ((item) => 'column_' + (item + 1)))
+    const dataType = typeof source.dataType === 'string' && source.dataType.trim() ? source.dataType.trim() : 'text'
+    let type = dataType
+    if (source.length != null && source.length !== '') {
+      type += '(' + source.length + ')'
+    } else if (source.precision != null && source.precision !== '') {
+      type += '(' + source.precision
+      if (source.scale != null && source.scale !== '') type += ', ' + source.scale
+      type += ')'
+    }
+    let line = quoteIdent(name) + ' ' + type
+    if (source.nullable === false) line += ' NOT NULL'
+    const defaultValue = source.default == null ? '' : String(source.default).replace(/\r\n|\r|\n/g, ' ')
+    if (defaultValue) line += ' DEFAULT ' + defaultValue
+    const comment = clip(source.comment == null ? '' : source.comment).trim()
+    if (comment) line += ' COMMENT ' + sqlLiteral(comment)
+    return {
+      name,
+      type,
+      nullable: source.nullable,
+      defaultValue,
+      comment,
+      line,
+    }
+  }
+
+  function finishMarkdown(title, lines) {
+    lines.push('')
+    const markdown = lines.join('\n')
+    const bytes = byteLength(markdown)
+    if (bytes > MAX_MARKDOWN_BYTES) {
+      const error = new Error('TOO_LARGE')
+      error.code = 'TOO_LARGE'
+      throw error
+    }
+    return { markdown, title, bytes }
+  }
+
+  function byteLength(value) {
+    if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(value).length
+    return Buffer.byteLength(value)
+  }
+
+  function buildShareMarkdown(input) {
+    const columns = Array.isArray(input.columns) ? input.columns : []
+    if (columns.length === 0) {
+      const error = new Error('NO_COLUMNS')
+      error.code = 'NO_COLUMNS'
+      throw error
+    }
+    const names = uniqueNames(columns, input.columnFallback || ((index) => 'column_' + (index + 1)))
+    const rows = Array.isArray(input.rows) ? input.rows : []
+    const lines = []
+    const title = String(input.title || 'Query result').replace(/\r\n|\r|\n/g, ' ').trim().slice(0, 128) || 'Query result'
+    lines.push('# ' + title, '')
+    const summary = input.summary || [input.database, input.schema, rows.length + ' rows'].filter((item) => item !== undefined && item !== null && String(item) !== '').join(' · ')
+    lines.push(summary)
+    if (input.note) lines.push('', String(input.note))
+    lines.push('', '| ' + names.map(markdownCell).join(' | ') + ' |')
+    lines.push('| ' + names.map(() => '---').join(' | ') + ' |')
+    for (const row of rows) {
+      lines.push('| ' + rowValues(row, names).map(markdownCell).join(' | ') + ' |')
+    }
+    if (input.includeSql && typeof input.sql === 'string' && input.sql.trim()) {
+      lines.push('', '## SQL', '', sqlFence(input.sql.trim()))
+    }
+    const page = finishMarkdown(title, lines)
+    return { ...page, rowCount: rows.length, columnCount: names.length }
+  }
+
+  function tableTitle(value, fallback) {
+    return String(value || fallback || '').replace(/\r\n|\r|\n/g, ' ').trim().slice(0, 128) || String(fallback || '')
+  }
+
+  function writeTableSection(lines, input, titlePrefix, subPrefix) {
+    const table = String(input.table || '').replace(/\r\n|\r|\n/g, ' ').trim()
+    const columns = attachColumnComments(Array.isArray(input.columns) ? input.columns : [], input.columnComments)
+    const fallback = input.columnFallback || ((index) => 'column_' + (index + 1))
+    const fields = columns.map((column, index) => describeColumn(column, index, fallback))
+    const headers = input.headers || { name: 'column', type: 'type', nullable: 'nullable', defaultValue: 'default' }
+    const owner = [input.schema, input.database].find((item) => item != null && String(item).trim() !== '')
+    const qualified = [owner, table].filter((item) => item != null && String(item).trim() !== '').map(quoteIdent).join('.')
+    let ddl = fields.length
+      ? 'CREATE TABLE ' + qualified + ' (\n' + fields.map((field) => '  ' + field.line).join(',\n') + '\n);'
+      : ''
+    const yes = input.yes == null ? 'yes' : String(input.yes)
+    const no = input.no == null ? 'no' : String(input.no)
+    const tableComment = clip(input.comment || '').trim()
+    const note = input.note ? String(input.note) : ''
+    if (titlePrefix) lines.push(titlePrefix + tableTitle(input.title, table), '')
+    if (input.summary) lines.push(String(input.summary))
+    if (note) lines.push('', note)
+    if (tableComment && tableComment !== note.replace(/\r\n|\r|\n/g, ' ').trim()) lines.push('', tableComment)
+    if (!fields.length) {
+      lines.push('', input.emptyColumns || 'No columns.')
+      return { ddl: '', rowCount: 0, columnCount: 0 }
+    }
+    const showComments = fields.some((field) => field.comment)
+    const head = [headers.name, headers.type, headers.nullable, headers.defaultValue]
+    if (showComments) head.push(headers.comment || 'comment')
+    lines.push('', '| ' + head.map(markdownCell).join(' | ') + ' |', '| ' + head.map(() => '---').join(' | ') + ' |')
+    for (const field of fields) {
+      const nullable = field.nullable === false ? no : field.nullable === true ? yes : ''
+      const cells = [field.name, field.type, nullable, field.defaultValue]
+      if (showComments) cells.push(field.comment)
+      lines.push('| ' + cells.map(markdownCell).join(' | ') + ' |')
+    }
+    const extras = []
+    const indexes = Array.isArray(input.indexes) ? input.indexes : null
+    if (indexes) {
+      const indexHeaders = input.indexHeaders || { name: 'index', kind: 'kind', columns: 'columns' }
+      lines.push('', subPrefix + (input.indexHeading || 'Indexes'), '')
+      if (indexes.length === 0) {
+        lines.push(input.noIndexes || 'No indexes.')
+      } else {
+        lines.push(
+          '| ' + [indexHeaders.name, indexHeaders.kind, indexHeaders.columns].map(markdownCell).join(' | ') + ' |',
+          '| --- | --- | --- |',
+        )
+        for (const index of indexes) {
+          lines.push('| ' + [
+            index && index.name,
+            indexKindLabel(index, input.indexKinds),
+            index && Array.isArray(index.columns) ? index.columns.join(', ') : '',
+          ].map(markdownCell).join(' | ') + ' |')
+        }
+      }
+      const extra = indexStatements(qualified, indexes)
+      if (extra) extras.push(extra)
+    }
+    const foreignKeys = Array.isArray(input.foreignKeys) ? input.foreignKeys : null
+    if (foreignKeys) {
+      const keyHeaders = input.foreignKeyHeaders || {
+        name: 'foreign key',
+        columns: 'columns',
+        references: 'references',
+        deleteRule: 'on delete',
+        updateRule: 'on update',
+      }
+      lines.push('', subPrefix + (input.foreignKeyHeading || 'Foreign keys'), '')
+      if (foreignKeys.length === 0) {
+        lines.push(input.noForeignKeys || 'No foreign keys.')
+      } else {
+        const labels = [keyHeaders.name, keyHeaders.columns, keyHeaders.references, keyHeaders.deleteRule, keyHeaders.updateRule]
+        lines.push('| ' + labels.map(markdownCell).join(' | ') + ' |', '| ' + labels.map(() => '---').join(' | ') + ' |')
+        for (const key of foreignKeys) {
+          lines.push('| ' + [
+            key && key.name,
+            key && Array.isArray(key.columns) ? key.columns.join(', ') : '',
+            foreignKeyReference(key),
+            key && key.deleteRule,
+            key && key.updateRule,
+          ].map(markdownCell).join(' | ') + ' |')
+        }
+      }
+      const extra = foreignKeyStatements(qualified, foreignKeys)
+      if (extra) extras.push(extra)
+    }
+    const commentSql = tableCommentStatement(qualified, tableComment, input.dbType)
+    if (commentSql) extras.push(commentSql)
+    if (extras.length) ddl += '\n\n' + extras.join('\n\n')
+    if (ddl) lines.push('', subPrefix + (input.ddlHeading || 'DDL'), '', sqlFence(ddl))
+    return { ddl, rowCount: fields.length, columnCount: showComments ? 5 : 4 }
+  }
+
+  function buildTableMarkdown(input) {
+    const table = String(input.table || '').replace(/\r\n|\r|\n/g, ' ').trim()
+    if (!table) {
+      const error = new Error('NO_TABLE')
+      error.code = 'NO_TABLE'
+      throw error
+    }
+    const columns = Array.isArray(input.columns) ? input.columns : []
+    if (columns.length === 0) {
+      const error = new Error('NO_COLUMNS')
+      error.code = 'NO_COLUMNS'
+      throw error
+    }
+    const summary = input.summary || [input.database, input.schema, table].filter((item) => item != null && String(item) !== '').join(' · ')
+    const title = tableTitle(input.title, table)
+    const lines = []
+    const section = writeTableSection(lines, { ...input, table, title, summary }, '# ', '## ')
+    const page = finishMarkdown(title, lines)
+    return {
+      ...page,
+      rowCount: section.rowCount,
+      columnCount: section.columnCount || 4,
+      ddl: section.ddl,
+      indexes: Array.isArray(input.indexes) ? input.indexes : [],
+      foreignKeys: Array.isArray(input.foreignKeys) ? input.foreignKeys : [],
+    }
+  }
+
+  function buildTablesMarkdown(input) {
+    const source = input && typeof input === 'object' ? input : {}
+    const tables = (Array.isArray(source.tables) ? source.tables : []).filter((item) => item && String(item.table || '').trim())
+    if (tables.length > 20) {
+      const error = new Error('TOO_MANY')
+      error.code = 'TOO_MANY'
+      throw error
+    }
+    if (tables.length === 0) {
+      const error = new Error('NO_TABLE')
+      error.code = 'NO_TABLE'
+      throw error
+    }
+    if (tables.length === 1) {
+      return buildTableMarkdown({ ...source, ...tables[0], title: source.title || tables[0].table })
+    }
+    const title = tableTitle(source.title, tables[0].table)
+    const lines = ['# ' + title, '']
+    if (source.summary) lines.push(String(source.summary))
+    if (source.note) lines.push('', String(source.note))
+    let rowCount = 0
+    let kept = 0
+    let columnCount = 4
+    for (const item of tables) {
+      const section = writeTableSection(lines, {
+        ...source,
+        ...item,
+        title: item.table,
+        summary: '',
+        note: item.comment || '',
+      }, '## ', '### ')
+      rowCount += section.rowCount
+      if (section.rowCount) kept += 1
+      if (section.columnCount > columnCount) columnCount = section.columnCount
+    }
+    if (!kept) {
+      const error = new Error('NO_COLUMNS')
+      error.code = 'NO_COLUMNS'
+      throw error
+    }
+    const page = finishMarkdown(title, lines)
+    return { ...page, rowCount, columnCount, tableCount: tables.length }
+  }
+
+  return {
+    MAX_CELL_CHARS,
+    MAX_MARKDOWN_BYTES,
+    buildShareMarkdown,
+    buildTableMarkdown,
+    buildTablesMarkdown,
+    columnCommentQuery,
+    describeColumn,
+    foreignKeyQuery,
+    foreignKeyReference,
+    indexCatalogQuery,
+    indexKindLabel,
+    markdownCell,
+    parseColumnComments,
+    parseForeignKeys,
+    parseIndexRows,
+    parseTableList,
+    tableListQuery,
+  }
+})
+</script>
+    <script>
+      const API_ORIGIN = "https://htmlto.link";
+      const STORAGE_KEY = "publish-settings";
+      const copy = {
+        zh: {
+          heading: "发布到 htmlto.link",
+          lead: "只上传这次结果里的行。数据库地址、账号和密码留在 DBX，不会发出去。",
+          structureHeading: "发布表结构到 htmlto.link",
+          structureLead: "可以勾选同一库里的多张表，一起发成一个页面。数据库地址、账号和密码留在 DBX。页面上的语句是按字段、索引、外键和注释拼出来的，不是库里的原始 DDL。第一次读取时，DBX 会请你允许这个连接。",
+          structureNote: "下面的语句只含字段，不含主键、索引、外键和注释，也不是数据库里的原始 DDL。",
+          structureNoteFull: "字段来自 DBX 的表结构。索引、外键和注释来自数据库目录，包含主键。不是数据库里的原始 DDL。",
+          structureNotePartial: "字段来自 DBX 的表结构。读到的索引、外键和注释会写上，没读到的不会出现。不是数据库里的原始 DDL。",
+          ddlHeading: "表结构",
+          indexHeading: "索引",
+          indexName: "索引",
+          indexKind: "类型",
+          indexColumns: "字段",
+          indexPrimary: "主键",
+          indexUnique: "唯一",
+          indexFulltext: "全文",
+          indexSpatial: "空间",
+          indexPlain: "普通",
+          noIndexes: "这张表没有索引。",
+          foreignKeyHeading: "外键",
+          fkName: "外键",
+          fkColumns: "字段",
+          fkReferences: "引用",
+          fkDelete: "删除时",
+          fkUpdate: "更新时",
+          noForeignKeys: "这张表没有外键。",
+          comment: "注释",
+          loadingIndexes: "正在读取索引。DBX 第一次会请你允许这个连接。",
+          loadingForeignKeys: "正在读取外键。DBX 第一次会请你允许这个连接。",
+          loadingComments: "正在读取注释。DBX 第一次会请你允许这个连接。",
+          readingIndexes: "读取索引",
+          indexes: "个索引",
+          indexesSkipped: "这个数据库读不到索引，页面只带字段。",
+          indexesFailed: "索引没有读到，页面只带字段",
+          indexesTruncated: "索引太多，页面只带了读到的前一部分。",
+          foreignKeys: "个外键",
+          readingForeignKeys: "读取外键",
+          foreignKeysSkipped: "这个数据库读不到外键，页面不带外键。",
+          foreignKeysFailed: "外键没有读到，页面不带外键",
+          commentsSkipped: "这个数据库读不到注释，页面不带注释。",
+          commentsFailed: "注释没有读到，页面不带注释",
+          catalogTruncated: "目录结果太多，页面只带了读到的前一部分。",
+          pickTables: "要发布的表",
+          selectAll: "全选",
+          onlyCurrent: "只选当前表",
+          filterTables: "筛选表名或注释",
+          loadingTables: "正在读取表列表。DBX 第一次会请你允许这个连接。",
+          tablesFailed: "表列表没有读到，只能发布当前这张表",
+          noTableMatches: "没有匹配的表。",
+          selectedTables: "已选",
+          tablesUnit: "张表",
+          tooManyTables: "一次最多 20 张表。",
+          readingTable: "正在读取",
+          template: "模板",
+          theme: "主题",
+          emptyColumns: "没有读到字段。",
+          outside: "在查询结果网格，或在左侧表名上点「发布表结构到 htmlto.link」，打开这个页面。",
+          noRows: "先执行一条查询，或在左侧表名上打开发布表结构。",
+          columns: "列",
+          rows: "行",
+          truncated: "网格只带了前 500 行",
+          pinned: "使用重新读取的结果",
+          title: "页面标题",
+          password: "访问密码，留空则任何人可打开",
+          changePassword: "更新已有链接时同时修改访问密码；留空会去掉密码",
+          includeSql: "在页面上附带 SQL。SQL 会公开可见",
+          token: "API Token",
+          fetchToken: "获取 Token",
+          waitingToken: "正在等待登录…",
+          tokenFilled: "已填入",
+          tokenHelp: "留空大约保留 24 小时。也可以点「获取 Token」：已登录会自动填入，未登录会先打开登录页。",
+          openTokenPage: "请在浏览器打开下面的链接。已登录会自动填入；未登录会先要求登录。",
+          tokenTimeout: "等待超时。请再点一次「获取 Token」。",
+          tokenFailed: "获取 Token 失败",
+          create: "发布新链接",
+          update: "更新上次的链接",
+          moreLead: "需要更多行时，用同一条只读 SQL 再查一次。DBX 会先请你同意这个连接，最多 5000 行。",
+          maxRows: "最多行数",
+          loadMore: "读取更多行",
+          useGrid: "改回网格里的结果",
+          noDataApi: "当前 DBX 不能替插件再查数据。把 SQL 加上 LIMIT 后重新执行，再打开这个页面。",
+          noSql: "这次结果没有带上 SQL，不能再查。",
+          copy: "复制链接",
+          copied: "已复制",
+          copyFailed: "请手动选中链接复制",
+          publishing: "正在发布…",
+          created: "新链接已发布。",
+          updated: "原链接已更新。",
+          guest: "这是游客页面。",
+          account: "这个页面记在你的 htmlto.link 账号下。",
+          expires: "有效期到 ",
+          noColumns: "这次结果没有列，不能发布。",
+          noFields: "没有读到字段，不能发布。",
+          noSchemaApi: "当前 DBX 不能读取表字段。请升级 DBX 后再从左侧表名上打开「发布表结构到 htmlto.link」。",
+          schemaFailed: "读取表字段失败",
+          loadingStructure: "正在读取字段",
+          nullableYes: "是",
+          nullableNo: "否",
+          field: "字段",
+          type: "类型",
+          nullable: "可空",
+          defaultValue: "默认值",
+          tooLarge: "结果太大，请减少行数后再发布。",
+          cors: "浏览器拦住了发往 htmlto.link 的请求。站点需要允许插件访问 /api/shares 后再试。",
+          badToken: "API Token 无效。到 htmlto.link/settings 重新复制。",
+          rate: "发布太频繁，请稍后再试。",
+          storageOff: "这次打开期间可以填写 Token，关闭页面后不会记住。",
+          queryFailed: "读取更多行失败",
+        },
+        en: {
+          heading: "Publish to htmlto.link",
+          lead: "Only the rows in this result are uploaded. The database address, account, and password stay in DBX.",
+          structureHeading: "Publish table structure to htmlto.link",
+          structureLead: "Check several tables in the same database and publish them as one page. The database address, account, and password stay in DBX. The statements are rebuilt from columns, indexes, foreign keys, and comments. They are not the database's original DDL. The first read asks you to allow this connection.",
+          structureNote: "The statements below contain columns only. They have no primary key, index, foreign key, or comment, and they are not the database's original DDL.",
+          structureNoteFull: "Columns come from DBX table metadata. Indexes, foreign keys, and comments come from the database catalog, including the primary key. This is not the database's original DDL.",
+          structureNotePartial: "Columns come from DBX table metadata. Indexes, foreign keys, and comments are included when they were read. Anything that was not read is left out. This is not the database's original DDL.",
+          ddlHeading: "Table structure",
+          indexHeading: "Indexes",
+          indexName: "index",
+          indexKind: "kind",
+          indexColumns: "columns",
+          indexPrimary: "primary key",
+          indexUnique: "unique",
+          indexFulltext: "fulltext",
+          indexSpatial: "spatial",
+          indexPlain: "index",
+          noIndexes: "This table has no indexes.",
+          foreignKeyHeading: "Foreign keys",
+          fkName: "foreign key",
+          fkColumns: "columns",
+          fkReferences: "references",
+          fkDelete: "on delete",
+          fkUpdate: "on update",
+          noForeignKeys: "This table has no foreign keys.",
+          comment: "comment",
+          loadingIndexes: "Reading indexes. The first time, DBX asks you to allow this connection.",
+          loadingForeignKeys: "Reading foreign keys. The first time, DBX asks you to allow this connection.",
+          loadingComments: "Reading comments. The first time, DBX asks you to allow this connection.",
+          readingIndexes: "Reading indexes",
+          indexes: "indexes",
+          indexesSkipped: "Indexes cannot be read for this database. The page has columns only.",
+          indexesFailed: "Indexes were not read. The page has columns only",
+          indexesTruncated: "There are too many index columns. The page includes only the part that was read.",
+          foreignKeys: "foreign keys",
+          readingForeignKeys: "Reading foreign keys",
+          foreignKeysSkipped: "Foreign keys cannot be read for this database. The page has no foreign keys.",
+          foreignKeysFailed: "Foreign keys were not read. The page has no foreign keys",
+          commentsSkipped: "Comments cannot be read for this database. The page has no comments.",
+          commentsFailed: "Comments were not read. The page has no comments",
+          catalogTruncated: "The catalog result was too long. The page includes only the part that was read.",
+          pickTables: "Tables to publish",
+          selectAll: "Select all",
+          onlyCurrent: "Current table only",
+          filterTables: "Filter by name or comment",
+          loadingTables: "Reading the table list. The first time, DBX asks you to allow this connection.",
+          tablesFailed: "The table list was not read. Only the current table can be published",
+          noTableMatches: "No tables match.",
+          selectedTables: "Selected",
+          tablesUnit: "tables",
+          tooManyTables: "Publish at most 20 tables at once.",
+          readingTable: "Reading",
+          template: "Template",
+          theme: "Theme",
+          emptyColumns: "No columns were returned.",
+          outside: "Open this page from a query result, or from Publish structure to htmlto.link on a table.",
+          noRows: "Run a query, or open Publish structure from a table in the sidebar.",
+          columns: "columns",
+          rows: "rows",
+          truncated: "The grid only included the first 500 rows",
+          pinned: "Using the re-read result",
+          title: "Page title",
+          password: "Access password. Leave empty for a public page",
+          changePassword: "Also change the password when updating. Empty removes it",
+          includeSql: "Include the SQL on the page. It will be public",
+          token: "API Token",
+          fetchToken: "Get token",
+          waitingToken: "Waiting for login…",
+          tokenFilled: "Filled in",
+          tokenHelp: "Empty keeps the page for about 24 hours. Get token fills it automatically when you are logged in, and asks you to log in otherwise.",
+          openTokenPage: "Open this link in your browser. A logged-in session fills the token. Otherwise you log in first.",
+          tokenTimeout: "Timed out. Click Get token again.",
+          tokenFailed: "Could not fetch the token",
+          create: "Publish a new link",
+          update: "Update the last link",
+          moreLead: "Read more rows with the same read-only SQL. DBX asks you to allow this connection. The cap is 5000 rows.",
+          maxRows: "Max rows",
+          loadMore: "Read more rows",
+          useGrid: "Use the grid result",
+          noDataApi: "This DBX cannot re-run the query for a plugin. Add LIMIT, run it again, and reopen this page.",
+          noSql: "This result did not include SQL, so it cannot be re-read.",
+          copy: "Copy link",
+          copied: "Copied",
+          copyFailed: "Select the link and copy it",
+          publishing: "Publishing…",
+          created: "The new link is ready.",
+          updated: "The existing link was updated.",
+          guest: "This is a guest page.",
+          account: "This page belongs to your htmlto.link account.",
+          expires: "Expires ",
+          noColumns: "This result has no columns.",
+          noFields: "No columns were returned.",
+          noSchemaApi: "This DBX cannot read table columns. Upgrade DBX, then open Publish structure to htmlto.link from a table in the sidebar.",
+          schemaFailed: "Could not read the table columns",
+          loadingStructure: "Reading columns",
+          nullableYes: "yes",
+          nullableNo: "no",
+          field: "column",
+          type: "type",
+          nullable: "nullable",
+          defaultValue: "default",
+          tooLarge: "The result is too large. Publish fewer rows.",
+          cors: "The browser blocked the request to htmlto.link. The site must allow the plugin to call /api/shares.",
+          badToken: "The API token is invalid. Copy it again from htmlto.link/settings.",
+          rate: "Too many publishes. Wait and try again.",
+          storageOff: "The token is kept only while this page stays open.",
+          queryFailed: "Could not read more rows",
+        },
+      };
+
+      const $ = (id) => document.getElementById(id);
+      let text = copy.zh;
+      let mode = "query";
+      let grid = emptySnapshot();
+      let pinned = null;
+      let tableContext = null;
+      let tableColumns = [];
+      let tableIndexes = [];
+      let tableIndexState = "idle";
+      let tableIndexDetail = "";
+      let tableIndexTruncated = false;
+      let tableColumnComments = [];
+      let tableCommentState = "idle";
+      let tableCommentDetail = "";
+      let tableCommentTruncated = false;
+      let tableForeignKeys = [];
+      let tableForeignKeyState = "idle";
+      let tableForeignKeyDetail = "";
+      let tableForeignKeyTruncated = false;
+      let tableLoading = false;
+      let tableProblem = null;
+      let tableRequest = 0;
+      let settings = emptySettings();
+      let autoTitle = "";
+      let publishing = false;
+      let shareUrl = "";
+      let tokenPoll = 0;
+      let tokenFetchState = "idle";
+      let catalogTables = [];
+      let selectedTables = new Set();
+      let tableListState = "idle";
+      let tableListDetail = "";
+      let knownDbType = "";
+      let structureCache = new Map();
+      let publishStatus = "";
+      const MAX_TABLES = 20;
+      const TEMPLATES = [
+        ["plain", "简洁", "Plain"],
+        ["professional", "专业商务", "Professional"],
+        ["terminal", "终端命令行", "Terminal"],
+        ["blueprint", "蓝图技术", "Blueprint"],
+        ["memo", "备忘录", "Memo"],
+        ["notebook", "笔记本", "Notebook"],
+        ["coilnotebook", "线圈笔记本", "Coil notebook"],
+        ["popart", "波普艺术", "Pop art"],
+        ["traditionalchinese", "中国传统", "Traditional Chinese"],
+        ["purpleticket", "紫色小红书", "Purple ticket"],
+        ["bytedance", "字节范", "Bytedance"],
+        ["warm", "温暖柔和", "Warm"],
+        ["alibaba", "阿里橙", "Alibaba"],
+        ["darktech", "黑色科技", "Dark tech"],
+        ["fairytale", "儿童童话", "Fairytale"],
+        ["boardgamestyle", "桌游风格", "Board game"],
+        ["cyberpunk", "赛博朋克", "Cyberpunk"],
+        ["glassmorphism", "玻璃拟态", "Glassmorphism"],
+        ["neonglow", "霓虹发光", "Neon glow"],
+        ["vintagenewspaper", "复古报纸", "Vintage newspaper"],
+        ["handwrittennote", "手写笔记", "Handwritten note"],
+        ["vintagemap", "古旧地图", "Vintage map"],
+        ["botanical", "植物图鉴", "Botanical"],
+        ["sketch", "手绘涂鸦", "Sketch"],
+        ["retro", "复古Win95", "Retro"],
+        ["ayulight", "Ayu暖光", "Ayu light"],
+        ["bauhaus", "包豪斯", "Bauhaus"],
+        ["greensimple", "清新绿", "Fresh green"],
+        ["maximalism", "极繁主义", "Maximalism"],
+        ["neobrutalism", "新粗野主义", "Neo-brutalism"],
+        ["newsprint", "报纸印刷", "Newsprint"],
+        ["organic", "侘寂陶艺", "Organic"],
+        ["playfulgeometric", "活泼几何", "Playful geometric"],
+      ];
+      const THEMES = {
+        memo: [["bright-mode", "高亮", "Bright"], ["dark-mode", "暗黑", "Dark"]],
+        popart: [
+          ["candy-mode", "糖果色", "Candy"],
+          ["mint-mode", "薄荷绿", "Mint"],
+          ["purple-mode", "紫色", "Purple"],
+          ["yellow-mode", "黄色", "Yellow"],
+          ["hot-red-mode", "热辣红", "Hot red"],
+          ["forest-green-mode", "森林绿", "Forest"],
+          ["ocean-blue-mode", "海洋蓝", "Ocean"],
+          ["pink-blue-mode", "粉蓝", "Pink blue"],
+          ["neon-pink-mode", "霓虹粉", "Neon pink"],
+          ["retro-orange-mode", "复古橙", "Retro orange"],
+        ],
+        coilnotebook: [
+          ["blue-mode", "海蓝", "Blue"],
+          ["pink-mode", "粉色", "Pink"],
+          ["mint-mode", "薄荷绿", "Mint"],
+          ["yellow-mode", "暖黄", "Warm yellow"],
+        ],
+      };
+
+      function emptySnapshot() {
+        return { columns: [], rows: [], truncated: false, sql: "", connectionId: "", database: "", schema: "" };
+      }
+
+      function emptySettings() {
+        return { apiToken: "", includeSql: false, last: null, templateId: "plain", themeClass: "" };
+      }
+
+      function normalizeSettings(value) {
+        const source = value && typeof value === "object" ? value : {};
+        const last = source.last && typeof source.last === "object" ? source.last : null;
+        const slug = last && typeof last.slug === "string" ? last.slug : "";
+        const updateToken = last && typeof last.updateToken === "string" ? last.updateToken : "";
+        const templateId = typeof source.templateId === "string" ? source.templateId : "plain";
+        return {
+          apiToken: typeof source.apiToken === "string" ? source.apiToken : "",
+          includeSql: Boolean(source.includeSql),
+          templateId: TEMPLATES.some((item) => item[0] === templateId) ? templateId : "plain",
+          themeClass: typeof source.themeClass === "string" ? source.themeClass.slice(0, 64) : "",
+          last: slug && updateToken ? {
+            slug,
+            updateToken,
+            url: typeof last.url === "string" ? last.url : "",
+            title: typeof last.title === "string" ? last.title : "",
+          } : null,
+        };
+      }
+
+      function readSnapshot(context) {
+        const source = context && typeof context === "object" ? context : {};
+        const result = source.result && typeof source.result === "object" ? source.result : {};
+        const textOf = (key) => {
+          if (typeof result[key] === "string" && result[key]) return result[key];
+          if (typeof source[key] === "string") return source[key];
+          return "";
+        };
+        return {
+          columns: Array.isArray(result.columns) ? result.columns : (Array.isArray(source.columns) ? source.columns : []),
+          rows: Array.isArray(result.rows) ? result.rows : (Array.isArray(source.rows) ? source.rows : []),
+          truncated: Boolean(result.truncated || source.truncated),
+          sql: textOf("sql"),
+          connectionId: textOf("connectionId"),
+          database: textOf("database"),
+          schema: textOf("schema"),
+        };
+      }
+
+      function textField(source, key) {
+        return source && typeof source[key] === "string" ? source[key].trim() : "";
+      }
+
+      function readTableTarget(context) {
+        const source = context && typeof context === "object" ? context : {};
+        if (source.result || Array.isArray(source.rows) || Array.isArray(source.columns)) return null;
+        const table = textField(source, "table");
+        const connectionId = textField(source, "connectionId");
+        if (!table || !connectionId) return null;
+        return {
+          connectionId,
+          database: textField(source, "database"),
+          schema: textField(source, "schema"),
+          table,
+        };
+      }
+
+      function sameTable(left, right) {
+        if (!left || !right) return false;
+        return left.connectionId === right.connectionId
+          && left.database === right.database
+          && left.schema === right.schema
+          && left.table === right.table;
+      }
+
+      function clearIndexes() {
+        tableIndexes = [];
+        tableIndexState = "idle";
+        tableIndexDetail = "";
+        tableIndexTruncated = false;
+        tableColumnComments = [];
+        tableCommentState = "idle";
+        tableCommentDetail = "";
+        tableCommentTruncated = false;
+        tableForeignKeys = [];
+        tableForeignKeyState = "idle";
+        tableForeignKeyDetail = "";
+        tableForeignKeyTruncated = false;
+      }
+
+      function catalogPending(state) {
+        return state === "idle" || state === "loading";
+      }
+
+      function clearCatalog() {
+        catalogTables = [];
+        selectedTables = new Set();
+        tableListState = "idle";
+        tableListDetail = "";
+        knownDbType = "";
+        structureCache = new Map();
+      }
+
+      function commentOf(name) {
+        const found = catalogTables.find((item) => item.name === name);
+        return found && found.comment ? found.comment : "";
+      }
+
+      function chosenTableNames() {
+        const ordered = [];
+        const seen = new Set();
+        const push = (name) => {
+          if (!name || seen.has(name) || ordered.length >= MAX_TABLES) return;
+          seen.add(name);
+          ordered.push(name);
+        };
+        for (const item of catalogTables) {
+          if (selectedTables.has(item.name)) push(item.name);
+        }
+        for (const name of selectedTables) push(name);
+        if (!ordered.length && tableContext) push(tableContext.table);
+        return ordered;
+      }
+
+      function catalogRows() {
+        if (catalogTables.length) return catalogTables;
+        if (tableContext) return [{ name: tableContext.table, comment: "" }];
+        return [];
+      }
+
+      function filteredCatalog() {
+        const filter = $("tableFilter").value.trim().toLowerCase();
+        return catalogRows().filter((item) => !filter || item.name.toLowerCase().includes(filter) || item.comment.toLowerCase().includes(filter));
+      }
+
+      function themeChoices(templateId) {
+        return THEMES[templateId] || [];
+      }
+
+      function fillThemeSelect() {
+        const themes = themeChoices($("template").value);
+        const field = $("themeField");
+        const select = $("theme");
+        if (!themes.length) {
+          field.hidden = true;
+          return;
+        }
+        field.hidden = false;
+        const current = select.value || settings.themeClass || "";
+        select.replaceChildren();
+        for (const item of themes) {
+          const option = document.createElement("option");
+          option.value = item[0];
+          option.textContent = text === copy.zh ? item[1] : item[2];
+          select.appendChild(option);
+        }
+        select.value = themes.some((item) => item[0] === current) ? current : themes[0][0];
+      }
+
+      function fillTemplateSelect() {
+        const select = $("template");
+        const current = select.value || settings.templateId || "plain";
+        select.replaceChildren();
+        for (const item of TEMPLATES) {
+          const option = document.createElement("option");
+          option.value = item[0];
+          option.textContent = text === copy.zh ? item[1] : item[2];
+          select.appendChild(option);
+        }
+        select.value = TEMPLATES.some((item) => item[0] === current) ? current : "plain";
+        fillThemeSelect();
+      }
+
+      function selectedTheme() {
+        const value = $("theme").value;
+        return themeChoices($("template").value).some((item) => item[0] === value) ? value : "";
+      }
+
+      function refreshSelectionTitle() {
+        if (!tableContext) return;
+        const names = chosenTableNames();
+        const next = names.length > 1
+          ? String(tableContext.database || tableContext.schema || names[0] || "").slice(0, 80)
+          : String(names[0] || tableContext.table || "").slice(0, 80);
+        const input = $("pageTitle");
+        if (!input.value || input.value === autoTitle) {
+          input.value = next;
+          autoTitle = next;
+        }
+      }
+
+      function renderTablePicker() {
+        const picker = $("tablePicker");
+        const tableMode = mode === "table" && tableContext;
+        picker.hidden = !tableMode;
+        if (!tableMode) return;
+        $("tablePickerLabel").textContent = text.pickTables;
+        $("tableFilter").placeholder = text.filterTables;
+        const visible = filteredCatalog();
+        const allOn = visible.length > 0 && visible.every((item) => selectedTables.has(item.name));
+        $("toggleTables").textContent = allOn ? text.onlyCurrent : text.selectAll;
+        const names = chosenTableNames();
+        const listNote = tableListState === "ready" && tableListDetail ? " " + tableListDetail : "";
+        $("tablePickerNote").textContent = text.selectedTables + " " + names.length + " " + text.tablesUnit + listNote;
+        const list = $("tableList");
+        list.replaceChildren();
+        if (tableListState === "loading" || tableListState === "idle") {
+          list.appendChild(previewNote(text.loadingTables));
+          return;
+        }
+        if (tableListState === "failed") {
+          list.appendChild(previewNote(text.tablesFailed + (tableListDetail ? ": " + tableListDetail : "")));
+        }
+        if (!visible.length) {
+          list.appendChild(previewNote(text.noTableMatches));
+          return;
+        }
+        for (const item of visible) {
+          const label = document.createElement("label");
+          label.className = "check";
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.value = item.name;
+          box.checked = selectedTables.has(item.name);
+          box.addEventListener("change", () => {
+            if (box.checked) {
+              if (selectedTables.size >= MAX_TABLES) {
+                box.checked = false;
+                showError(text.tooManyTables);
+                return;
+              }
+              selectedTables.add(item.name);
+              showError("");
+            } else if (selectedTables.size <= 1) {
+              box.checked = true;
+            } else {
+              selectedTables.delete(item.name);
+            }
+            refreshSelectionTitle();
+            renderTablePicker();
+          });
+          const name = document.createElement("span");
+          name.textContent = item.name;
+          label.appendChild(box);
+          label.appendChild(name);
+          if (item.comment) {
+            const comment = document.createElement("span");
+            comment.className = "muted comment";
+            comment.textContent = item.comment;
+            label.appendChild(comment);
+          }
+          list.appendChild(label);
+        }
+      }
+
+      function toggleTableSelection() {
+        if (!tableContext) return;
+        const visible = filteredCatalog();
+        const allOn = visible.length > 0 && visible.every((item) => selectedTables.has(item.name));
+        if (allOn) {
+          selectedTables = new Set([tableContext.table]);
+          showError("");
+        } else {
+          for (const item of visible) {
+            if (selectedTables.size >= MAX_TABLES) {
+              showError(text.tooManyTables);
+              break;
+            }
+            selectedTables.add(item.name);
+          }
+        }
+        refreshSelectionTitle();
+        render();
+      }
+
+      async function detectDbType(target) {
+        if (knownDbType) return knownDbType;
+        const host = window.dbxPlugin;
+        const probe = await host.queryData({
+          connectionId: target.connectionId,
+          database: target.database || undefined,
+          schema: target.schema || undefined,
+          sql: "SELECT 1 AS ok",
+          maxRows: 1,
+        });
+        knownDbType = probe && probe.dbType ? String(probe.dbType) : "";
+        return knownDbType;
+      }
+
+      async function readCatalogRows(queryFn, parseFn, tableName) {
+        const host = window.dbxPlugin;
+        if (!knownDbType || typeof queryFn !== "function" || typeof parseFn !== "function") return undefined;
+        if (!host || typeof host.queryData !== "function") return undefined;
+        const sql = queryFn({
+          dbType: knownDbType,
+          database: tableContext.database,
+          schema: tableContext.schema,
+          table: tableName,
+        });
+        if (!sql) return undefined;
+        try {
+          const result = await host.queryData({
+            connectionId: tableContext.connectionId,
+            database: tableContext.database || undefined,
+            schema: tableContext.schema || undefined,
+            sql,
+            maxRows: 500,
+          });
+          return parseFn({ columns: result && result.columns, rows: result && result.rows });
+        } catch {
+          return undefined;
+        }
+      }
+
+      async function ensureTableStructure(name) {
+        if (structureCache.has(name)) return structureCache.get(name);
+        const comment = commentOf(name);
+        if (name === tableContext.table && tableColumns.length) {
+          const page = {
+            table: name,
+            comment,
+            columns: tableColumns,
+            indexes: tableIndexState === "ready" ? tableIndexes : undefined,
+            columnComments: tableCommentState === "ready" ? tableColumnComments : undefined,
+            foreignKeys: tableForeignKeyState === "ready" ? tableForeignKeys : undefined,
+            schema: tableContext.schema,
+            database: tableContext.database,
+          };
+          structureCache.set(name, page);
+          return page;
+        }
+        const host = window.dbxPlugin;
+        let columns = [];
+        try {
+          const result = await host.getTableMetadata({
+            connectionId: tableContext.connectionId,
+            database: tableContext.database || undefined,
+            schema: tableContext.schema || undefined,
+            table: name,
+          });
+          columns = result && Array.isArray(result.columns) ? result.columns : [];
+        } catch {
+          return { table: name, comment, columns: [], schema: tableContext.schema, database: tableContext.database };
+        }
+        const lib = window.HtmlToLinkTable || {};
+        const [indexes, columnComments, foreignKeys] = await Promise.all([
+          readCatalogRows(lib.indexCatalogQuery, lib.parseIndexRows, name),
+          readCatalogRows(lib.columnCommentQuery, lib.parseColumnComments, name),
+          readCatalogRows(lib.foreignKeyQuery, lib.parseForeignKeys, name),
+        ]);
+        const page = {
+          table: name,
+          comment,
+          columns,
+          indexes,
+          columnComments,
+          foreignKeys,
+          schema: tableContext.schema,
+          database: tableContext.database,
+        };
+        if (columns.length) structureCache.set(name, page);
+        return page;
+      }
+
+      function structureNote() {
+        const states = [tableIndexState, tableForeignKeyState, tableCommentState];
+        const truncated = tableIndexTruncated || tableForeignKeyTruncated || tableCommentTruncated;
+        if (states.every((item) => item === "ready")) {
+          return truncated ? text.structureNoteFull + " " + text.catalogTruncated : text.structureNoteFull;
+        }
+        if (states.every((item) => item === "skipped")) return text.structureNote;
+        if (states.some((item) => item === "ready" || item === "failed")) return text.structureNotePartial;
+        return text.structureNote;
+      }
+
+      function tableProblemText() {
+        if (!tableProblem) return "";
+        if (tableProblem.code === "noSchemaApi") return text.noSchemaApi;
+        if (tableProblem.code === "noFields") return text.noFields;
+        return text.schemaFailed + (tableProblem.detail ? ": " + tableProblem.detail : "");
+      }
+
+      function active() {
+        return pinned || grid;
+      }
+
+      function defaultTitle(snapshot) {
+        const line = String(snapshot.sql || "").split(/\r?\n/).map((item) => item.trim()).find(Boolean) || "";
+        return (line || (text === copy.zh ? "查询结果" : "Query result")).slice(0, 80);
+      }
+
+      function fillTitleFromTable(target) {
+        const input = $("pageTitle");
+        const next = String(target.table || "").slice(0, 80);
+        if (!input.value || input.value === autoTitle) {
+          input.value = next;
+          autoTitle = next;
+        }
+      }
+
+      function applyLocale(locale) {
+        text = String(locale || "").toLowerCase().startsWith("zh") ? copy.zh : copy.en;
+        document.documentElement.lang = text === copy.zh ? "zh-CN" : "en";
+        $("heading").textContent = text.heading;
+        $("lead").textContent = text.lead;
+        $("titleLabel").firstChild.textContent = text.title + " ";
+        $("templateLabel").firstChild.textContent = text.template + " ";
+        $("themeField").firstChild.textContent = text.theme + " ";
+        $("passwordLabel").firstChild.textContent = text.password + " ";
+        $("changePasswordText").textContent = text.changePassword;
+        $("includeSqlText").textContent = text.includeSql;
+        $("tokenLabel").textContent = text.token;
+        setFetchButton();
+        $("tokenHelp").textContent = text.tokenHelp;
+        $("create").textContent = publishing ? (publishStatus || text.publishing) : text.create;
+        fillTemplateSelect();
+        $("update").textContent = text.update;
+        $("moreLead").textContent = text.moreLead;
+        $("maxRowsLabel").firstChild.textContent = text.maxRows + " ";
+        $("loadMore").textContent = text.loadMore;
+        $("useGrid").textContent = text.useGrid;
+        $("copy").textContent = text.copy;
+      }
+
+      function previewCell(value) {
+        if (value === null || value === undefined) return "";
+        if (typeof value === "object") {
+          try { return JSON.stringify(value); } catch { return String(value); }
+        }
+        return String(value);
+      }
+
+      function renderPreview(snapshot) {
+        const host = $("preview");
+        host.replaceChildren();
+        if (!snapshot.columns.length) {
+          const note = document.createElement("p");
+          note.className = "muted";
+          note.style.padding = "12px";
+          note.textContent = window.dbxPlugin ? text.noRows : text.outside;
+          host.appendChild(note);
+          return;
+        }
+        const names = snapshot.columns.map((column, index) => {
+          const raw = typeof column === "string" ? column : column && column.name;
+          return typeof raw === "string" && raw.trim() ? raw.trim() : "column_" + (index + 1);
+        });
+        const table = document.createElement("table");
+        const head = document.createElement("tr");
+        for (const name of names) {
+          const cell = document.createElement("th");
+          cell.textContent = name;
+          head.appendChild(cell);
+        }
+        const thead = document.createElement("thead");
+        thead.appendChild(head);
+        table.appendChild(thead);
+        const body = document.createElement("tbody");
+        const sample = snapshot.rows.slice(0, 8);
+        for (const row of sample) {
+          const tr = document.createElement("tr");
+          const values = Array.isArray(row)
+            ? names.map((_, index) => row[index])
+            : row && typeof row === "object"
+              ? names.map((name) => row[name])
+              : names.map(() => row);
+          for (const value of values) {
+            const cell = document.createElement("td");
+            cell.textContent = previewCell(value);
+            tr.appendChild(cell);
+          }
+          body.appendChild(tr);
+        }
+        table.appendChild(body);
+        host.appendChild(table);
+      }
+
+      function renderTablePreview() {
+        const host = $("preview");
+        host.replaceChildren();
+        if (tableLoading) {
+          const note = document.createElement("p");
+          note.className = "muted";
+          note.style.padding = "12px";
+          note.textContent = text.loadingStructure;
+          host.appendChild(note);
+          return;
+        }
+        if (!tableColumns.length) {
+          const note = document.createElement("p");
+          note.className = "muted";
+          note.style.padding = "12px";
+          note.textContent = tableProblemText() || text.noFields;
+          host.appendChild(note);
+          return;
+        }
+        const tableComment = tableContext ? commentOf(tableContext.table) : "";
+        if (tableComment) {
+          const note = document.createElement("p");
+          note.style.padding = "10px 12px 0";
+          note.textContent = tableComment;
+          host.appendChild(note);
+        }
+        const describe = window.HtmlToLinkTable && window.HtmlToLinkTable.describeColumn;
+        const showComment = tableCommentState === "ready";
+        const table = document.createElement("table");
+        const head = document.createElement("tr");
+        const labels = [text.field, text.type, text.nullable, text.defaultValue];
+        if (showComment) labels.push(text.comment);
+        for (const label of labels) {
+          const cell = document.createElement("th");
+          cell.textContent = label;
+          head.appendChild(cell);
+        }
+        const thead = document.createElement("thead");
+        thead.appendChild(head);
+        table.appendChild(thead);
+        const body = document.createElement("tbody");
+        for (let index = 0; index < tableColumns.length && index < 12; index += 1) {
+          const column = tableColumns[index];
+          const name = column && column.name ? String(column.name) : "";
+          const saved = tableColumnComments.find((item) => item.name === name)
+            || tableColumnComments.find((item) => name && item.name.toLowerCase() === name.toLowerCase());
+          const source = !saved
+            ? column
+            : column && typeof column === "object"
+              ? Object.assign({}, column, { comment: saved.comment })
+              : { name: column, comment: saved.comment };
+          const field = describe
+            ? describe(source, index)
+            : {
+              name,
+              type: column && column.dataType ? String(column.dataType) : "",
+              nullable: column ? column.nullable : undefined,
+              defaultValue: column && column.default != null ? String(column.default) : "",
+              comment: saved ? saved.comment : "",
+            };
+          const nullable = field.nullable === false ? text.nullableNo : field.nullable === true ? text.nullableYes : "";
+          const values = [field.name, field.type, nullable, field.defaultValue];
+          if (showComment) values.push(field.comment || "");
+          const tr = document.createElement("tr");
+          for (const value of values) {
+            const cell = document.createElement("td");
+            cell.textContent = value == null ? "" : String(value);
+            tr.appendChild(cell);
+          }
+          body.appendChild(tr);
+        }
+        table.appendChild(body);
+        host.appendChild(table);
+        if (tableCommentState === "loading" || tableCommentState === "idle") host.appendChild(previewNote(text.loadingComments));
+        else if (tableCommentState === "failed") host.appendChild(previewNote(text.commentsFailed + (tableCommentDetail ? ": " + tableCommentDetail : "")));
+        else if (tableCommentState === "skipped") host.appendChild(previewNote(text.commentsSkipped));
+        else if (tableCommentTruncated) host.appendChild(previewNote(text.catalogTruncated));
+        appendIndexPreview(host);
+        appendForeignKeyPreview(host);
+      }
+
+      function previewNote(message) {
+        const note = document.createElement("p");
+        note.className = "muted";
+        note.style.padding = "12px";
+        note.textContent = message;
+        return note;
+      }
+
+      function appendIndexPreview(host) {
+        if (tableIndexState === "loading" || tableIndexState === "idle") {
+          host.appendChild(previewNote(text.loadingIndexes));
+          return;
+        }
+        if (tableIndexState === "failed") {
+          host.appendChild(previewNote(text.indexesFailed + (tableIndexDetail ? ": " + tableIndexDetail : "")));
+          return;
+        }
+        if (tableIndexState === "skipped") {
+          host.appendChild(previewNote(text.indexesSkipped));
+          return;
+        }
+        const title = document.createElement("p");
+        title.style.padding = "10px 12px 0";
+        title.style.fontWeight = "600";
+        title.textContent = text.indexHeading;
+        host.appendChild(title);
+        if (!tableIndexes.length) {
+          host.appendChild(previewNote(text.noIndexes));
+          return;
+        }
+        const kinds = {
+          primary: text.indexPrimary,
+          unique: text.indexUnique,
+          fulltext: text.indexFulltext,
+          spatial: text.indexSpatial,
+          plain: text.indexPlain,
+        };
+        const labelOf = window.HtmlToLinkTable && window.HtmlToLinkTable.indexKindLabel;
+        const table = document.createElement("table");
+        const head = document.createElement("tr");
+        for (const label of [text.indexName, text.indexKind, text.indexColumns]) {
+          const cell = document.createElement("th");
+          cell.textContent = label;
+          head.appendChild(cell);
+        }
+        const thead = document.createElement("thead");
+        thead.appendChild(head);
+        table.appendChild(thead);
+        const body = document.createElement("tbody");
+        for (let index = 0; index < tableIndexes.length && index < 30; index += 1) {
+          const item = tableIndexes[index];
+          const tr = document.createElement("tr");
+          const values = [
+            item.name,
+            labelOf ? labelOf(item, kinds) : item.name,
+            Array.isArray(item.columns) ? item.columns.join(", ") : "",
+          ];
+          for (const value of values) {
+            const cell = document.createElement("td");
+            cell.textContent = value == null ? "" : String(value);
+            tr.appendChild(cell);
+          }
+          body.appendChild(tr);
+        }
+        table.appendChild(body);
+        host.appendChild(table);
+        if (tableIndexTruncated) host.appendChild(previewNote(text.indexesTruncated));
+      }
+
+      function appendForeignKeyPreview(host) {
+        if (tableForeignKeyState === "loading" || tableForeignKeyState === "idle") {
+          host.appendChild(previewNote(text.loadingForeignKeys));
+          return;
+        }
+        if (tableForeignKeyState === "failed") {
+          host.appendChild(previewNote(text.foreignKeysFailed + (tableForeignKeyDetail ? ": " + tableForeignKeyDetail : "")));
+          return;
+        }
+        if (tableForeignKeyState === "skipped") {
+          host.appendChild(previewNote(text.foreignKeysSkipped));
+          return;
+        }
+        const title = document.createElement("p");
+        title.style.padding = "10px 12px 0";
+        title.style.fontWeight = "600";
+        title.textContent = text.foreignKeyHeading;
+        host.appendChild(title);
+        if (!tableForeignKeys.length) {
+          host.appendChild(previewNote(text.noForeignKeys));
+          return;
+        }
+        const referenceOf = window.HtmlToLinkTable && window.HtmlToLinkTable.foreignKeyReference;
+        const table = document.createElement("table");
+        const head = document.createElement("tr");
+        for (const label of [text.fkName, text.fkColumns, text.fkReferences, text.fkDelete, text.fkUpdate]) {
+          const cell = document.createElement("th");
+          cell.textContent = label;
+          head.appendChild(cell);
+        }
+        const thead = document.createElement("thead");
+        thead.appendChild(head);
+        table.appendChild(thead);
+        const body = document.createElement("tbody");
+        for (let index = 0; index < tableForeignKeys.length && index < 30; index += 1) {
+          const item = tableForeignKeys[index];
+          const tr = document.createElement("tr");
+          const values = [
+            item.name,
+            Array.isArray(item.columns) ? item.columns.join(", ") : "",
+            referenceOf ? referenceOf(item) : "",
+            item.deleteRule || "",
+            item.updateRule || "",
+          ];
+          for (const value of values) {
+            const cell = document.createElement("td");
+            cell.textContent = value == null ? "" : String(value);
+            tr.appendChild(cell);
+          }
+          body.appendChild(tr);
+        }
+        table.appendChild(body);
+        host.appendChild(table);
+        if (tableForeignKeyTruncated) host.appendChild(previewNote(text.catalogTruncated));
+      }
+
+      function render() {
+        const tableMode = mode === "table" && tableContext;
+        $("heading").textContent = tableMode ? text.structureHeading : text.heading;
+        $("lead").textContent = tableMode ? text.structureLead : text.lead;
+        $("sqlOption").hidden = Boolean(tableMode);
+        if (tableMode) {
+          const bits = [];
+          if (tableContext.database) bits.push(tableContext.database);
+          if (tableContext.schema) bits.push(tableContext.schema);
+          bits.push(tableContext.table);
+          bits.push(tableColumns.length + " " + text.columns);
+          if (tableLoading) bits.push(text.loadingStructure);
+          else if (tableIndexState === "ready") bits.push(tableIndexes.length + " " + text.indexes);
+          else if (catalogPending(tableIndexState)) bits.push(text.readingIndexes);
+          if (!tableLoading && tableForeignKeyState === "ready") bits.push(tableForeignKeys.length + " " + text.foreignKeys);
+          else if (!tableLoading && catalogPending(tableForeignKeyState)) bits.push(text.readingForeignKeys);
+          bits.push(text.selectedTables + " " + chosenTableNames().length + " " + text.tablesUnit);
+          $("meta").textContent = bits.join(" · ");
+          renderTablePreview();
+          renderTablePicker();
+          const extrasPending = catalogPending(tableIndexState) || catalogPending(tableForeignKeyState) || catalogPending(tableCommentState) || catalogPending(tableListState);
+          const ready = !publishing && !tableLoading && tableColumns.length > 0 && !extrasPending;
+          $("create").disabled = !ready;
+          $("update").disabled = !ready || !settings.last;
+          $("more").hidden = true;
+          const problem = tableProblemText();
+          if (problem) showError(problem);
+        } else {
+          const snapshot = active();
+          const bits = [snapshot.columns.length + " " + text.columns, snapshot.rows.length + " " + text.rows];
+          if (snapshot.database) bits.push(snapshot.database);
+          if (snapshot.schema) bits.push(snapshot.schema);
+          if (pinned) bits.push(text.pinned);
+          else if (snapshot.truncated) bits.push(text.truncated);
+          $("meta").textContent = bits.join(" · ");
+          renderPreview(snapshot);
+          $("create").disabled = publishing || snapshot.columns.length === 0;
+          $("update").disabled = publishing || snapshot.columns.length === 0 || !settings.last;
+          const canReread = Boolean(grid.sql && grid.connectionId && (grid.truncated || pinned));
+          const canQuery = Boolean(window.dbxPlugin && window.dbxPlugin.capabilities && window.dbxPlugin.capabilities.dataApi && typeof window.dbxPlugin.queryData === "function");
+          $("more").hidden = !canReread;
+          $("moreLead").textContent = canQuery ? text.moreLead : text.noDataApi;
+          $("loadMore").hidden = !canQuery;
+          $("maxRowsLabel").hidden = !canQuery;
+          $("useGrid").hidden = !pinned;
+          $("tablePicker").hidden = true;
+        }
+        if (!window.dbxPlugin || !window.dbxPlugin.capabilities || !window.dbxPlugin.capabilities.storage) {
+          $("tokenHelp").textContent = text.tokenHelp + " " + text.storageOff;
+        }
+      }
+
+      function showError(message) {
+        $("error").textContent = message || "";
+      }
+
+      function noteFor(snapshot) {
+        if (pinned && snapshot.truncated) {
+          return text === copy.zh
+            ? "重新读取时到达上限，页面里是前 " + snapshot.rows.length + " 行。"
+            : "The re-read stopped at the cap. This page has the first " + snapshot.rows.length + " rows.";
+        }
+        if (!pinned && snapshot.truncated) {
+          return text === copy.zh
+            ? "网格只带了前 " + snapshot.rows.length + " 行，后面的行没有放进这个页面。"
+            : "The grid only included the first " + snapshot.rows.length + " rows. Later rows are not on this page.";
+        }
+        return "";
+      }
+
+      async function persist() {
+        const host = window.dbxPlugin;
+        settings.includeSql = $("includeSql").checked;
+        settings.apiToken = $("token").value;
+        settings.templateId = $("template").value || "plain";
+        settings.themeClass = selectedTheme();
+        if (!host || !host.capabilities || !host.capabilities.storage || !host.storage) return;
+        await host.storage.set(STORAGE_KEY, {
+          apiToken: settings.apiToken,
+          includeSql: settings.includeSql,
+          templateId: settings.templateId,
+          themeClass: settings.themeClass,
+          last: settings.last,
+        });
+      }
+
+      async function publish(action) {
+        if (publishing) return;
+        const snapshot = active();
+        showError("");
+        let built;
+        try {
+          if (mode === "table") {
+            if (!tableContext || tableColumns.length === 0) return;
+            const names = chosenTableNames();
+            const tables = [];
+            for (let index = 0; index < names.length; index += 1) {
+              publishStatus = text.readingTable + " " + (index + 1) + "/" + names.length + " " + names[index];
+              $("create").disabled = true;
+              $("create").textContent = publishStatus;
+              tables.push(await ensureTableStructure(names[index]));
+            }
+            publishStatus = "";
+            const countLabel = names.length + " " + text.tablesUnit;
+            built = window.HtmlToLinkTable.buildTablesMarkdown({
+              title: $("pageTitle").value || (names.length === 1 ? names[0] : (tableContext.database || names[0])),
+              summary: [tableContext.database, tableContext.schema, countLabel].filter(Boolean).join(" · "),
+              note: structureNote(),
+              dbType: knownDbType,
+              ddlHeading: text.ddlHeading,
+              indexHeading: text.indexHeading,
+              noIndexes: text.noIndexes,
+              foreignKeyHeading: text.foreignKeyHeading,
+              noForeignKeys: text.noForeignKeys,
+              emptyColumns: text.emptyColumns,
+              indexHeaders: {
+                name: text.indexName,
+                kind: text.indexKind,
+                columns: text.indexColumns,
+              },
+              indexKinds: {
+                primary: text.indexPrimary,
+                unique: text.indexUnique,
+                fulltext: text.indexFulltext,
+                spatial: text.indexSpatial,
+                plain: text.indexPlain,
+              },
+              foreignKeyHeaders: {
+                name: text.fkName,
+                columns: text.fkColumns,
+                references: text.fkReferences,
+                deleteRule: text.fkDelete,
+                updateRule: text.fkUpdate,
+              },
+              headers: {
+                name: text.field,
+                type: text.type,
+                nullable: text.nullable,
+                defaultValue: text.defaultValue,
+                comment: text.comment,
+              },
+              yes: text.nullableYes,
+              no: text.nullableNo,
+              columnFallback: (index) => (text === copy.zh ? "列" : "column_") + (index + 1),
+              tables,
+            });
+          } else {
+            built = window.HtmlToLinkTable.buildShareMarkdown({
+              title: $("pageTitle").value || (text === copy.zh ? "查询结果" : "Query result"),
+              columns: snapshot.columns,
+              rows: snapshot.rows,
+              summary: [snapshot.database, snapshot.schema, snapshot.rows.length + " " + text.rows].filter(Boolean).join(" · "),
+              note: noteFor(snapshot),
+              sql: snapshot.sql,
+              includeSql: $("includeSql").checked,
+              columnFallback: (index) => (text === copy.zh ? "列" : "column_") + (index + 1),
+            });
+          }
+        } catch (error) {
+          publishStatus = "";
+          render();
+          if (error && error.code === "TOO_LARGE") showError(text.tooLarge);
+          else if (error && error.code === "TOO_MANY") showError(text.tooManyTables);
+          else if (mode === "table") showError(text.noFields);
+          else showError(text.noColumns);
+          return;
+        }
+        const body = {
+          content: built.markdown,
+          title: built.title,
+          templateId: $("template").value || "plain",
+          channel: "dbx",
+        };
+        const themeClass = selectedTheme();
+        if (themeClass) body.themeClass = themeClass;
+        const password = $("password").value;
+        if (action === "update") {
+          if (!settings.last) {
+            render();
+            return;
+          }
+          body.updateToken = settings.last.updateToken;
+          if ($("changePassword").checked) body.password = password;
+        } else if (password) {
+          body.password = password;
+        }
+        const headers = { "Content-Type": "application/json", Accept: "application/json" };
+        const token = $("token").value.trim();
+        if (token) headers.Authorization = "Bearer " + token;
+        const path = action === "update"
+          ? "/api/shares/" + encodeURIComponent(settings.last.slug)
+          : "/api/shares";
+        publishing = true;
+        render();
+        try {
+          const response = await fetch(API_ORIGIN + path, {
+            method: action === "update" ? "PUT" : "POST",
+            headers,
+            body: JSON.stringify(body),
+          });
+          let payload = {};
+          try { payload = await response.json(); } catch { payload = {}; }
+          if (response.status === 401) throw new Error(text.badToken);
+          if (response.status === 429) throw new Error(text.rate);
+          if (!response.ok || payload.success === false || payload.ok === false) {
+            throw new Error(payload.error || payload.message || ("HTTP " + response.status));
+          }
+          const url = payload.url || (payload.slug ? API_ORIGIN + "/" + payload.slug : "");
+          if (!url) throw new Error("HTTP " + response.status);
+          shareUrl = url;
+          settings.last = {
+            slug: payload.slug || (settings.last && settings.last.slug) || "",
+            updateToken: payload.updateToken || (settings.last && settings.last.updateToken) || "",
+            url,
+            title: built.title,
+          };
+          $("password").value = "";
+          $("changePassword").checked = false;
+          await persist();
+          $("success").hidden = false;
+          $("successText").textContent = action === "update" ? text.updated : text.created;
+          $("shareUrl").textContent = url;
+          const when = payload.expiresAt ? new Date(payload.expiresAt) : null;
+          const whenText = when && !Number.isNaN(when.getTime())
+            ? text.expires + when.toLocaleString(text === copy.zh ? "zh-CN" : "en")
+            : "";
+          $("expiry").textContent = [payload.temporary ? text.guest : text.account, whenText].filter(Boolean).join(" ");
+        } catch (error) {
+          const message = error instanceof TypeError ? text.cors : (error && error.message) || String(error);
+          showError(message);
+        } finally {
+          publishing = false;
+          render();
+        }
+      }
+
+      async function loadMore() {
+        const host = window.dbxPlugin;
+        showError("");
+        if (!grid.sql || !grid.connectionId) {
+          showError(text.noSql);
+          return;
+        }
+        if (!host || !host.capabilities || !host.capabilities.dataApi || typeof host.queryData !== "function") {
+          showError(text.noDataApi);
+          return;
+        }
+        const maxRows = Math.min(5000, Math.max(1, Math.round(Number($("maxRows").value) || 2000)));
+        $("maxRows").value = String(maxRows);
+        $("loadMore").disabled = true;
+        try {
+          const result = await host.queryData({
+            connectionId: grid.connectionId,
+            database: grid.database || undefined,
+            schema: grid.schema || undefined,
+            sql: grid.sql,
+            maxRows,
+          });
+          pinned = {
+            columns: result && Array.isArray(result.columns) ? result.columns : grid.columns,
+            rows: result && Array.isArray(result.rows) ? result.rows : [],
+            truncated: Boolean(result && result.truncated),
+            sql: grid.sql,
+            connectionId: grid.connectionId,
+            database: grid.database,
+            schema: grid.schema,
+          };
+          render();
+        } catch (error) {
+          showError(text.queryFailed + ": " + ((error && error.message) || String(error)));
+        } finally {
+          $("loadMore").disabled = false;
+        }
+      }
+
+      async function copyLink() {
+        if (!shareUrl) return;
+        try {
+          if (window.dbxPlugin && typeof window.dbxPlugin.copy === "function") {
+            await window.dbxPlugin.copy(shareUrl);
+          } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(shareUrl);
+          } else {
+            throw new Error("clipboard");
+          }
+          $("copy").textContent = text.copied;
+        } catch {
+          showError(text.copyFailed);
+        }
+      }
+
+      function fillTitleFromGrid() {
+        const input = $("pageTitle");
+        const next = defaultTitle(grid);
+        if (!input.value || input.value === autoTitle) {
+          input.value = next;
+          autoTitle = next;
+        }
+      }
+
+      async function loadTable(target) {
+        const request = ++tableRequest;
+        const host = window.dbxPlugin;
+        tableLoading = true;
+        tableProblem = null;
+        tableColumns = [];
+        clearIndexes();
+        clearCatalog();
+        selectedTables.add(target.table);
+        render();
+        if (!host || !host.capabilities || !host.capabilities.schemaMetadataApi || typeof host.getTableMetadata !== "function") {
+          if (request !== tableRequest) return;
+          tableLoading = false;
+          tableProblem = { code: "noSchemaApi" };
+          render();
+          return;
+        }
+        try {
+          const result = await host.getTableMetadata({
+            connectionId: target.connectionId,
+            database: target.database || undefined,
+            schema: target.schema || undefined,
+            table: target.table,
+          });
+          if (request !== tableRequest) return;
+          const columns = result && Array.isArray(result.columns) ? result.columns : [];
+          tableColumns = columns;
+          tableLoading = false;
+          tableProblem = columns.length ? null : { code: "noFields" };
+          if (!columns.length) {
+            tableIndexState = "skipped";
+            tableCommentState = "skipped";
+            tableForeignKeyState = "skipped";
+            tableListState = "skipped";
+            render();
+            return;
+          }
+          render();
+          await Promise.all([
+            loadIndexes(target, request),
+            loadColumnComments(target, request),
+            loadForeignKeys(target, request),
+            loadTableList(target, request),
+          ]);
+        } catch (error) {
+          if (request !== tableRequest) return;
+          tableLoading = false;
+          tableColumns = [];
+          clearIndexes();
+          clearCatalog();
+          tableIndexState = "skipped";
+          tableCommentState = "skipped";
+          tableForeignKeyState = "skipped";
+          tableListState = "skipped";
+          tableProblem = { code: "schemaFailed", detail: (error && error.message) || "" };
+          render();
+        }
+      }
+
+      async function loadCatalogPart(target, request, part) {
+        const host = window.dbxPlugin;
+        const query = window.HtmlToLinkTable && window.HtmlToLinkTable[part.query];
+        const parse = window.HtmlToLinkTable && window.HtmlToLinkTable[part.parse];
+        const canQuery = Boolean(host && host.capabilities && host.capabilities.dataApi && typeof host.queryData === "function");
+        if (!canQuery || typeof query !== "function" || typeof parse !== "function") {
+          if (request !== tableRequest) return;
+          part.finish("skipped", [], "", false);
+          render();
+          return;
+        }
+        part.finish("loading", [], "", false);
+        render();
+        try {
+          const dbType = await detectDbType(target);
+          if (request !== tableRequest) return;
+          const sql = query({
+            dbType,
+            database: target.database,
+            schema: target.schema,
+            table: target.table,
+          });
+          if (!sql) {
+            part.finish("skipped", [], "", false);
+            render();
+            return;
+          }
+          const result = await host.queryData({
+            connectionId: target.connectionId,
+            database: target.database || undefined,
+            schema: target.schema || undefined,
+            sql,
+            maxRows: 500,
+          });
+          if (request !== tableRequest) return;
+          part.finish(
+            "ready",
+            parse({ columns: result && result.columns, rows: result && result.rows }),
+            "",
+            Boolean(result && result.truncated),
+          );
+          render();
+        } catch (error) {
+          if (request !== tableRequest) return;
+          part.finish("failed", [], (error && error.message) || "", false);
+          render();
+        }
+      }
+
+      function loadIndexes(target, request) {
+        return loadCatalogPart(target, request, {
+          query: "indexCatalogQuery",
+          parse: "parseIndexRows",
+          finish(state, rows, detail, truncated) {
+            tableIndexState = state;
+            tableIndexes = rows;
+            tableIndexDetail = detail;
+            tableIndexTruncated = truncated;
+          },
+        });
+      }
+
+      function loadColumnComments(target, request) {
+        return loadCatalogPart(target, request, {
+          query: "columnCommentQuery",
+          parse: "parseColumnComments",
+          finish(state, rows, detail, truncated) {
+            tableCommentState = state;
+            tableColumnComments = rows;
+            tableCommentDetail = detail;
+            tableCommentTruncated = truncated;
+          },
+        });
+      }
+
+      function loadForeignKeys(target, request) {
+        return loadCatalogPart(target, request, {
+          query: "foreignKeyQuery",
+          parse: "parseForeignKeys",
+          finish(state, rows, detail, truncated) {
+            tableForeignKeyState = state;
+            tableForeignKeys = rows;
+            tableForeignKeyDetail = detail;
+            tableForeignKeyTruncated = truncated;
+          },
+        });
+      }
+
+      async function loadTableList(target, request) {
+        const host = window.dbxPlugin;
+        const listQuery = window.HtmlToLinkTable && window.HtmlToLinkTable.tableListQuery;
+        const parseList = window.HtmlToLinkTable && window.HtmlToLinkTable.parseTableList;
+        const canQuery = Boolean(host && host.capabilities && host.capabilities.dataApi && typeof host.queryData === "function");
+        if (!canQuery || typeof listQuery !== "function" || typeof parseList !== "function") {
+          if (request !== tableRequest) return;
+          tableListState = "skipped";
+          catalogTables = [{ name: target.table, comment: "" }];
+          selectedTables.add(target.table);
+          render();
+          return;
+        }
+        tableListState = "loading";
+        render();
+        try {
+          const dbType = await detectDbType(target);
+          if (request !== tableRequest) return;
+          const sql = listQuery({ dbType, database: target.database, schema: target.schema });
+          if (!sql) {
+            tableListState = "skipped";
+            catalogTables = [{ name: target.table, comment: "" }];
+            selectedTables.add(target.table);
+            render();
+            return;
+          }
+          const result = await host.queryData({
+            connectionId: target.connectionId,
+            database: target.database || undefined,
+            schema: target.schema || undefined,
+            sql,
+            maxRows: 500,
+          });
+          if (request !== tableRequest) return;
+          const tables = parseList({ columns: result && result.columns, rows: result && result.rows });
+          if (!tables.some((item) => item.name === target.table)) tables.unshift({ name: target.table, comment: "" });
+          catalogTables = tables;
+          selectedTables.add(target.table);
+          tableListState = "ready";
+          tableListDetail = result && result.truncated ? text.tooManyTables : "";
+          render();
+        } catch (error) {
+          if (request !== tableRequest) return;
+          tableListState = "failed";
+          tableListDetail = (error && error.message) || "";
+          catalogTables = [{ name: target.table, comment: "" }];
+          selectedTables.add(target.table);
+          render();
+        }
+      }
+
+      function applyHostContext(context, options) {
+        const keepTitle = Boolean(options && options.keepTitle);
+        const target = readTableTarget(context);
+        if (target) {
+          const changed = !sameTable(tableContext, target);
+          mode = "table";
+          pinned = null;
+          grid = emptySnapshot();
+          tableContext = target;
+          if (changed) {
+            tableColumns = [];
+            clearIndexes();
+            clearCatalog();
+            tableProblem = null;
+            showError("");
+            fillTitleFromTable(target);
+            loadTable(target);
+          }
+          render();
+          return;
+        }
+        const leftTable = mode === "table";
+        mode = "query";
+        tableContext = null;
+        tableColumns = [];
+        clearIndexes();
+        clearCatalog();
+        tableLoading = false;
+        tableProblem = null;
+        tableRequest += 1;
+        if (leftTable) showError("");
+        grid = readSnapshot(context || {});
+        if (!keepTitle) fillTitleFromGrid();
+        render();
+      }
+
+      function setFetchButton() {
+        const button = $("fetchToken");
+        button.textContent = tokenFetchState === "waiting"
+          ? text.waitingToken
+          : tokenFetchState === "filled"
+            ? text.tokenFilled
+            : text.fetchToken;
+        button.disabled = tokenFetchState === "waiting";
+      }
+
+      function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      function safeTokenUrl(value) {
+        try {
+          const url = new URL(value);
+          if (url.origin !== API_ORIGIN || url.pathname !== "/dbx/connect") return "";
+          return url.toString();
+        } catch {
+          return "";
+        }
+      }
+
+      async function fetchTokenFromAccount() {
+        if (tokenFetchState === "waiting") return;
+        const request = ++tokenPoll;
+        tokenFetchState = "waiting";
+        setFetchButton();
+        showError("");
+        $("tokenWait").hidden = true;
+        try {
+          const response = await fetch(API_ORIGIN + "/api/dbx/token-grant", {
+            method: "POST",
+            headers: { Accept: "application/json" },
+          });
+          let payload = {};
+          try { payload = await response.json(); } catch { payload = {}; }
+          if (response.status === 429) throw new Error(text.rate);
+          const openUrl = safeTokenUrl(payload.openUrl);
+          const pollSecret = typeof payload.pollSecret === "string" ? payload.pollSecret : "";
+          if (!response.ok || payload.success === false || !openUrl || !pollSecret) {
+            throw new Error(payload.message || text.tokenFailed);
+          }
+          let opened = null;
+          try { opened = window.open(openUrl, "_blank", "noopener"); } catch { opened = null; }
+          if (window.dbxPlugin && typeof window.dbxPlugin.copy === "function") {
+            try { await window.dbxPlugin.copy(openUrl); } catch { /* the link stays on screen */ }
+          }
+          $("tokenWait").hidden = false;
+          $("tokenWait").textContent = (opened ? text.waitingToken + " " : text.openTokenPage + " ") + openUrl;
+          const deadline = Date.now() + 300000;
+          while (Date.now() < deadline && request === tokenPoll) {
+            await delay(2000);
+            if (request !== tokenPoll) return;
+            const poll = await fetch(API_ORIGIN + "/api/dbx/token-grant/poll", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Accept: "application/json" },
+              body: JSON.stringify({ pollSecret }),
+            });
+            let body = {};
+            try { body = await poll.json(); } catch { body = {}; }
+            if (poll.status === 429) throw new Error(text.rate);
+            if (body.status === "ready" && typeof body.token === "string" && body.token) {
+              $("token").value = body.token;
+              await persist();
+              tokenFetchState = "filled";
+              $("tokenWait").hidden = true;
+              showError("");
+              return;
+            }
+            if (body.status === "expired") break;
+          }
+          if (request === tokenPoll) {
+            tokenFetchState = "idle";
+            showError(text.tokenTimeout);
+          }
+        } catch (error) {
+          if (request !== tokenPoll) return;
+          tokenFetchState = "idle";
+          const message = error instanceof TypeError ? text.cors : (error && error.message) || text.tokenFailed;
+          showError(message);
+        } finally {
+          if (request === tokenPoll) setFetchButton();
+        }
+      }
+
+      $("create").addEventListener("click", () => publish("create"));
+      $("update").addEventListener("click", () => publish("update"));
+      $("loadMore").addEventListener("click", loadMore);
+      $("useGrid").addEventListener("click", () => { pinned = null; render(); });
+      $("copy").addEventListener("click", copyLink);
+      $("includeSql").addEventListener("change", () => { persist().catch(() => {}); });
+      $("token").addEventListener("change", () => { persist().catch(() => {}); });
+      $("fetchToken").addEventListener("click", () => { fetchTokenFromAccount().catch(() => {}); });
+      $("template").addEventListener("change", () => { fillThemeSelect(); persist().catch(() => {}); });
+      $("theme").addEventListener("change", () => { persist().catch(() => {}); });
+      $("toggleTables").addEventListener("click", toggleTableSelection);
+      $("tableFilter").addEventListener("input", () => renderTablePicker());
+      $("form").addEventListener("submit", (event) => event.preventDefault());
+
+      applyLocale("zh-CN");
+      render();
+
+      const host = window.dbxPlugin;
+      if (!host || !host.ready) {
+        showError(text.outside);
+      } else {
+        host.ready.then(async (context) => {
+          applyLocale(host.locale);
+          if (host.capabilities && host.capabilities.storage && host.storage) {
+            try { settings = normalizeSettings(await host.storage.get(STORAGE_KEY)); } catch { settings = emptySettings(); }
+          }
+          $("token").value = settings.apiToken;
+          $("includeSql").checked = settings.includeSql;
+          $("template").value = settings.templateId || "plain";
+          fillThemeSelect();
+          if (settings.themeClass && !$("themeField").hidden) $("theme").value = settings.themeClass;
+          applyHostContext(context || host.context || {});
+          if (typeof host.onContext === "function") {
+            host.onContext((next) => {
+              applyHostContext(next, { keepTitle: Boolean(pinned) });
+            });
+          }
+        }).catch((error) => {
+          showError((error && error.message) || String(error));
+        });
+        window.addEventListener("dbx-plugin-env", (event) => {
+          applyLocale(event.detail && event.detail.locale);
+          render();
+        });
+      }
+    </script>
+  </body>
+</html>
